@@ -1,0 +1,19 @@
+{
+  "name": "peonysearch",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@types/node": "^18.11.9",
+    "esbuild": "^0.15.13",
+    "gulp": "^4.0.2",
+    "gulp-esbuild": "^0.10.6",
+    "gulp-typescript": "^6.0.0-alpha.1",
+    "typescript": "^4.8.4"
+  }
+}
