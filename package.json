@@ -16,5 +16,8 @@
     "gulp-esbuild": "^0.10.6",
     "gulp-typescript": "^6.0.0-alpha.1",
     "typescript": "^4.8.4"
+  },
+  "dependencies": {
+    "knockout": "^3.5.1"
   }
 }

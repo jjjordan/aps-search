@@ -1,0 +1,27 @@
+<html>
+  <body>
+    <input type="text" data-bind="textInput: searchBox, valueUpdate: 'afterkeydown'">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Photo</th>
+          <th>Originator</th>
+          <th>Group</th>
+          <th>Country</th>
+          <th>Introduction Date</th>
+        </tr>
+      </thead>
+      <tbody data-bind="foreach: results.view">
+        <tr>
+          <td data-bind="text: cultivar"></td>
+          <td><img data-bind="src: image"></td>
+          <td data-bind="text: originator"></td>
+          <td data-bind="text: group"></td>
+          <td data-bind="text: date"></td>
+        </tr>
+      </tbody>
+    </table>
+    <script src="bundle.js"></script>
+  </body>
+</html>

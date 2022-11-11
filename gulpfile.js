@@ -17,7 +17,7 @@ gulp.task('esbuild', gulp.series('ts', () => {
         .pipe(esbuild({
             outfile: 'bundle.js',
             bundle: true,
-            minify: true,
+            minify: false,
         }))
         .pipe(gulp.dest('out/rel'));
 }));
