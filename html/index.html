@@ -1,6 +1,13 @@
 <html>
   <body>
     <input type="text" data-bind="textInput: searchBox, valueUpdate: 'afterkeydown'">
+    <p data-bind="foreach: results.pages">
+      <a data-bind="text: label, attr: {href: active() ? '#' : ''}, style: {'font-weight': selected() ? 'bold' : ''}, click: click"></a>
+      &nbsp;&nbsp;
+    </p>
+    <p>
+      <span data-bind="text: results.range" style="font-weight: lighter;"></span>
+    </p>
     <table>
       <thead>
         <tr>
@@ -14,8 +21,8 @@
       </thead>
       <tbody data-bind="foreach: results.view">
         <tr>
-          <td data-bind="text: cultivar"></td>
-          <td><img data-bind="src: image"></td>
+          <td><a data-bind="attr: {href: url}, text: cultivar" target="top"></a></td>
+          <td><img data-bind="attr: {src: image}" width="128" height="128"></td>
           <td data-bind="text: originator"></td>
           <td data-bind="text: group"></td>
           <td data-bind="text: date"></td>

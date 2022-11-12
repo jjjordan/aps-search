@@ -11,7 +11,7 @@ class ViewModel {
 
     constructor(private searcher: Searcher) {
         this.allResults = observableArray();
-        this.results = new ResultPaginator(this.allResults, 10);
+        this.results = new ResultPaginator(this.allResults, 25);
         this.searchBox = observable();
         this.searchBox.subscribe(x => this.onChange(x));
 
