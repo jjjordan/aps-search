@@ -11,6 +11,17 @@ interface Peony {
     url: string;
 }
 
+interface ScoredPeony extends AugmentedPeony {
+    score?: number;
+}
+
+interface AugmentedPeony extends Peony {
+    originator_norm?: string[];
+    cultivar_norm?: string[];
+    description_norm?: string[];
+    group_norm?: string[];
+}
+
 interface Searcher {
     search(query: string, db: Peony[], results: ko.ObservableArray<Peony>);
 }

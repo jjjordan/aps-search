@@ -1,6 +1,7 @@
 import { applyBindings, observable, Observable, observableArray, ObservableArray } from "knockout";
 import { ResultPaginator } from "./results";
 import { NaiveSearch } from "./naivesearch";
+import { DumbScoredSearch, ScoredSearch } from "./scoredsearch";
 
 class ViewModel {
     public searchBox: Observable<string>;
@@ -28,4 +29,6 @@ class ViewModel {
     }
 }
 
-applyBindings(new ViewModel(new NaiveSearch()));
+//applyBindings(new ViewModel(new NaiveSearch()));
+applyBindings(new ViewModel(new ScoredSearch()));
+//applyBindings(new ViewModel(new DumbScoredSearch()));
