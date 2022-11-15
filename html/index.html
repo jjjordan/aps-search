@@ -1,6 +1,7 @@
 <html>
   <body>
     <input type="text" data-bind="textInput: searchBox, valueUpdate: 'afterkeydown'">
+    <select data-bind="options: searchKinds, optionsText: 'label', value: searchKind"></select>
     <p data-bind="foreach: results.pages">
       <a data-bind="text: label, attr: {href: active() ? '#' : ''}, style: {'font-weight': selected() ? 'bold' : ''}, click: click"></a>
       &nbsp;&nbsp;
@@ -25,6 +26,7 @@
           <td><img data-bind="attr: {src: image}" width="128" height="128"></td>
           <td data-bind="text: originator"></td>
           <td data-bind="text: group"></td>
+          <td data-bind="text: country"></td>
           <td data-bind="text: date"></td>
         </tr>
       </tbody>

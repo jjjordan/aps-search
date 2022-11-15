@@ -20,13 +20,15 @@ interface AugmentedPeony extends Peony {
     cultivar_norm?: string[];
     description_norm?: string[];
     group_norm?: string[];
+    country_norm?: string[];
+    date_norm?: string[];
 }
 
 interface ScoredAugmentedPeony extends ScoredPeony, AugmentedPeony {}
 
 interface Searcher {
     initDb(db: Peony[]);
-    search(query: string, results: IResultPaginator);
+    search(query: string, kind: SearchKind, results: IResultPaginator);
 }
 
 interface IResultPaginator {
@@ -34,3 +36,5 @@ interface IResultPaginator {
     resetResults();
     initDb(db: Peony[]);
 }
+
+type SearchKind = "All" | "Cultivar" | "Originator" | "Group" | "Date" | "Country";

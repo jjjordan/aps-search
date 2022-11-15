@@ -10,7 +10,7 @@ export class NaiveSearch implements Searcher {
         this.db = db.slice();
     }
 
-    public search(query: string, results: IResultPaginator) {
+    public search(query: string, kind: SearchKind, results: IResultPaginator) {
         if (!query.length) {
             return;
         }
@@ -23,21 +23,50 @@ export class NaiveSearch implements Searcher {
             let cultivarUpper = peony.cultivar.toUpperCase();
             let origUpper = peony.originator.toUpperCase();
             let description = peony.description.toUpperCase();
+            let group = peony.group.toUpperCase();
+            let country = peony.country.toUpperCase();
             let hits = 0;
             for (let i = 0; i < terms.length; i++) {
-                if (cultivarUpper.indexOf(terms[i]) >= 0) {
-                    hits++;
-                    continue;
+                if (kind == "All" || kind == "Cultivar") {
+                    if (cultivarUpper.indexOf(terms[i]) >= 0) {
+                        hits++;
+                        continue;
+                    }
                 }
 
-                if (origUpper.indexOf(terms[i]) >= 0) {
-                    hits++;
-                    continue;
+                if (kind == "All" || kind == "Originator") {
+                    if (origUpper.indexOf(terms[i]) >= 0) {
+                        hits++;
+                        continue;
+                    }
                 }
 
-                if (description.indexOf(terms[i]) >= 0) {
-                    hits++;
-                    continue;
+                if (kind == "All") {
+                    if (description.indexOf(terms[i]) >= 0) {
+                        hits++;
+                        continue;
+                    }
+                }
+
+                if (kind == "All" || kind == "Group") {
+                    if (group.indexOf(terms[i]) >= 0) {
+                        hits++;
+                        continue;
+                    }
+                }
+
+                if (kind == "All" || kind == "Country") {
+                    if (country.indexOf(terms[i]) >= 0) {
+                        hits++;
+                        continue;
+                    }
+                }
+
+                if (kind == "All" || kind == "Date") {
+                    if (peony.date.indexOf(terms[i]) >= 0) {
+                        hits++;
+                        continue;
+                    }
                 }
 
                 break;

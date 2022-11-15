@@ -29,10 +29,10 @@ export class ScoredSearch implements Searcher {
         this.prepareDb(db);
     }
 
-    public search(query: string, results: IResultPaginator): void {
+    public search(query: string, kind: SearchKind, results: IResultPaginator): void {
         if (!this.db) {
             // Run this query when the DB is ready.
-            this.nextQuery = () => this.search(query, results);
+            this.nextQuery = () => this.search(query, kind, results);
             return;
         }
         
@@ -55,7 +55,7 @@ export class ScoredSearch implements Searcher {
             //console.log("Interrupting search");
         }
 
-        this.nextQuery = () => this.startSearch(query, results);
+        this.nextQuery = () => this.startSearch(query, kind, results);
     }
 
     private execSearch(): void {
@@ -67,17 +67,17 @@ export class ScoredSearch implements Searcher {
         return f();
     }
 
-    private startSearch(query: string, results: IResultPaginator): void {
+    private startSearch(query: string, kind: SearchKind, results: IResultPaginator): void {
         //console.log("RUNNING search");
         let query_norm = normalize(query).split(" ").filter(s => s.length > 0);
         let intermediate: ScoredPeony[] = [];
-        this.scoreResults(0, query_norm, intermediate, results);
+        this.scoreResults(0, query_norm, intermediate, kind, results);
     }
 
-    private scoreResults(start: number, query: string[], output: ScoredPeony[], results: IResultPaginator): void {
+    private scoreResults(start: number, query: string[], output: ScoredPeony[], kind: SearchKind, results: IResultPaginator): void {
         for (let i = start, until = Math.min(this.db.length, start + BATCH_COUNT); i < until; i++) {
             let scored = <ScoredAugmentedPeony>this.db[i];
-            if (scorePeony(query, scored) > 0) {
+            if (scorePeony(query, scored, kind) > 0) {
                 output.push(scored);
             }
         }
@@ -87,7 +87,7 @@ export class ScoredSearch implements Searcher {
             this.searchProgress = null;
             results.searchResults(output);
         } else {
-            this.searchProgress = setTimeout(() => this.scoreResults(start + BATCH_COUNT, query, output, results), BATCH_DELAY);
+            this.searchProgress = setTimeout(() => this.scoreResults(start + BATCH_COUNT, query, output, kind, results), BATCH_DELAY);
         }
     }
 
@@ -102,6 +102,8 @@ export class ScoredSearch implements Searcher {
             aug.description_norm = normalize(aug.description).split(" ");
             aug.originator_norm = normalize(aug.originator).split(" ");
             aug.group_norm = normalize(aug.group).split(" ");
+            aug.date_norm = normalize(aug.date).split(" ");
+            aug.country_norm = normalize(aug.country).split(" ");
         }
 
         if (start + BATCH_COUNT >= db.length) {
@@ -116,7 +118,7 @@ export class ScoredSearch implements Searcher {
     }
 }
 
-function scorePeony(query: string[], peony: ScoredAugmentedPeony): number {
+function scorePeony(query: string[], peony: ScoredAugmentedPeony, kind: SearchKind): number {
     let scores: number[] = [];
     let prevs: boolean[] = [];
 
@@ -125,10 +127,31 @@ function scorePeony(query: string[], peony: ScoredAugmentedPeony): number {
         prevs.push(false);
     }
 
-    matchScore(query, peony.cultivar_norm, scores, prevs, 3);
-    matchScore(query, peony.description_norm, scores, prevs);
-    matchScore(query, peony.group_norm, scores, prevs, 1.5);
-    matchScore(query, peony.originator_norm, scores, prevs, 2);
+    switch (kind) {
+    case "All":
+        matchScore(query, peony.cultivar_norm, scores, prevs, 3);
+        matchScore(query, peony.description_norm, scores, prevs);
+        matchScore(query, peony.group_norm, scores, prevs, 1.5);
+        matchScore(query, peony.originator_norm, scores, prevs, 2);
+        matchScore(query, peony.country_norm, scores, prevs);
+        matchScore(query, peony.date_norm, scores, prevs);
+        break;
+    case "Cultivar":
+        matchScore(query, peony.cultivar_norm, scores, prevs);
+        break;
+    case "Group":
+        matchScore(query, peony.group_norm, scores, prevs);
+        break;
+    case "Originator":
+        matchScore(query, peony.originator_norm, scores, prevs);
+        break;
+    case "Date":
+        matchScore(query, peony.date_norm, scores, prevs);
+        break;
+    case "Country":
+        matchScore(query, peony.country_norm, scores, prevs);
+        break;
+    }
     
     let result: number = 0;
     for (let i = 0; i < query.length; i++) {
@@ -204,14 +227,16 @@ export class DumbScoredSearch implements Searcher {
             p.description_norm = normalize(p.description).split(" ");
             p.group_norm = normalize(p.group).split(" ");
             p.originator_norm = normalize(p.originator).split(" ");
+            p.country_norm = normalize(p.country).split(" ");
+            p.date_norm = normalize(p.date).split(" ");
         });
     }
 
-    public search(query: string, results: IResultPaginator) {
+    public search(query: string, kind: SearchKind, results: IResultPaginator) {
         let terms = normalize(query).split(" ");
         let res = [];
         this.db.forEach(p => {
-            if (scorePeony(terms, p) > 0) {
+            if (scorePeony(terms, p, kind) > 0) {
                 res.push(p);
             }
         });
