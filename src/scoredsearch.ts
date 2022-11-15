@@ -36,12 +36,13 @@ export class ScoredSearch implements Searcher {
             return;
         }
         
-        const incrementalDelay = 50;
+        const incrementalDelay = 100;
         const maxDelay = 700;
 
         if (this.delayTimer !== null) {
             clearTimeout(this.delayTimer);
             this.delayTimer = setTimeout(() => this.execSearch(), incrementalDelay);
+            //console.log("Canceling search");
         } else {
             this.delayTimer = setTimeout(() => this.execSearch(), incrementalDelay);
             this.forceTimer = setTimeout(() => this.execSearch(), maxDelay);
@@ -51,6 +52,7 @@ export class ScoredSearch implements Searcher {
             // Cancel any currently-running search.
             clearTimeout(this.searchProgress);
             this.searchProgress = null;
+            //console.log("Interrupting search");
         }
 
         this.nextQuery = () => this.startSearch(query, results);
@@ -66,6 +68,7 @@ export class ScoredSearch implements Searcher {
     }
 
     private startSearch(query: string, results: IResultPaginator): void {
+        //console.log("RUNNING search");
         let query_norm = normalize(query).split(" ").filter(s => s.length > 0);
         let intermediate: ScoredPeony[] = [];
         this.scoreResults(0, query_norm, intermediate, results);
