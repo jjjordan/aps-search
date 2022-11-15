@@ -20,13 +20,19 @@ export function normalize(s: string): string {
             } else if (c == 38) {
                 // '&': read till ';'
                 for (++i; i < s.length && s.charCodeAt(i) != 59; i++) {}
+            } else if (lastc != 32 && ((c >= 44 && c <= 47) || c == 58)) {
+                // Insert space in place of , - . / :
+                res.push(" ");
+                lastc = 32;
             }
 
             last = i + 1;
         }
     }
 
-    if (last < s.length) {
+    if (last == 0) {
+        return s.toUpperCase();
+    } else if (last < s.length) {
         res.push(s.slice(last, s.length));
     }
 
