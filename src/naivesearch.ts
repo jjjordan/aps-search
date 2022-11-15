@@ -1,17 +1,25 @@
 export class NaiveSearch implements Searcher {
+    private db: Peony[];
     private updated: number = 0;
 
-    public search(query: string, db: Peony[], results: ko.ObservableArray<Peony>) {
-        results.splice(0, results().length);
+    constructor() {
+        this.db = [];
+    }
+
+    public initDb(db: Peony[]) {
+        this.db = db.slice();
+    }
+
+    public search(query: string, results: IResultPaginator) {
         if (!query.length) {
             return;
         }
 
         let terms = query.toUpperCase().split(" ");
-        console.log(terms);
-        console.log(db.length);
+        //console.log(terms);
+        //console.log(this.db.length);
         let allResults = [];
-        db.forEach(peony => {
+        this.db.forEach(peony => {
             let cultivarUpper = peony.cultivar.toUpperCase();
             let origUpper = peony.originator.toUpperCase();
             let description = peony.description.toUpperCase();
@@ -40,6 +48,6 @@ export class NaiveSearch implements Searcher {
             }
         });
 
-        results(allResults);
+        results.searchResults(allResults);
     }
 }

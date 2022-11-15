@@ -7,12 +7,10 @@ class ViewModel {
     public searchBox: Observable<string>;
     public results: ResultPaginator;
 
-    private allResults: ObservableArray<Peony>;
     private allPeonies: Peony[];
 
     constructor(private searcher: Searcher) {
-        this.allResults = observableArray();
-        this.results = new ResultPaginator(this.allResults, 25);
+        this.results = new ResultPaginator(25);
         this.searchBox = observable();
         this.searchBox.subscribe(x => this.onChange(x));
 
@@ -21,11 +19,19 @@ class ViewModel {
             .then(data => {
                 console.log("Fetched peony db: " + data.length);
                 this.allPeonies = data;
+
+                this.results.initDb(this.allPeonies);
+                this.searcher.initDb(this.allPeonies);
             });
     }
 
     private onChange(srch: string): void {
-        this.searcher.search(srch, this.allPeonies, this.allResults);
+        if (srch.trim().length == 0) {
+            this.results.resetResults();
+            return;
+        }
+
+        this.searcher.search(srch, this.results);
     }
 }
 

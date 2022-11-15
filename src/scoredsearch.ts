@@ -1,4 +1,5 @@
 import { ObservableArray } from "knockout";
+import { resourceLimits } from "worker_threads";
 import { normalize } from "./util";
 
 const BATCH_COUNT = 1000;
@@ -24,9 +25,15 @@ export class ScoredSearch implements Searcher {
         this.db = null;
     }
 
-    public search(query: string, db: Peony[], results: ObservableArray<Peony>): void {
+    public initDb(db: Peony[]) {
+        this.prepareDb(db);
+    }
+
+    public search(query: string, results: IResultPaginator): void {
         if (!this.db) {
-            return this.prepareDb(db, () => this.search(query, [], results));
+            // Run this query when the DB is ready.
+            this.nextQuery = () => this.search(query, results);
+            return;
         }
         
         const incrementalDelay = 50;
@@ -58,15 +65,15 @@ export class ScoredSearch implements Searcher {
         return f();
     }
 
-    private startSearch(query: string, results: ObservableArray<Peony>): void {
-        let query_norm = normalize(query).split(" ");
+    private startSearch(query: string, results: IResultPaginator): void {
+        let query_norm = normalize(query).split(" ").filter(s => s.length > 0);
         let intermediate: ScoredPeony[] = [];
         this.scoreResults(0, query_norm, intermediate, results);
     }
 
-    private scoreResults(start: number, query: string[], output: ScoredPeony[], results: ObservableArray<Peony>): void {
+    private scoreResults(start: number, query: string[], output: ScoredPeony[], results: IResultPaginator): void {
         for (let i = start, until = Math.min(this.db.length, start + BATCH_COUNT); i < until; i++) {
-            let scored = <ScoredPeony>this.db[i];
+            let scored = <ScoredAugmentedPeony>this.db[i];
             if (scorePeony(query, scored) > 0) {
                 output.push(scored);
             }
@@ -75,21 +82,13 @@ export class ScoredSearch implements Searcher {
         if (start + BATCH_COUNT >= this.db.length) {
             // Done!
             this.searchProgress = null;
-            output.sort((x, y) => y.score - x.score);
-            results(output);
+            results.searchResults(output);
         } else {
             this.searchProgress = setTimeout(() => this.scoreResults(start + BATCH_COUNT, query, output, results), BATCH_DELAY);
         }
     }
 
-    private prepareDb(db: Peony[], done: () => void): void {
-        if (this.nextQuery) {
-            // Already preparing ... just replace the done function.
-            this.nextQuery = done;
-            return;
-        }
-
-        this.nextQuery = done;
+    private prepareDb(db: Peony[]): void {
         this.prepSegment(db, 0);
     }
 
@@ -105,14 +104,16 @@ export class ScoredSearch implements Searcher {
         if (start + BATCH_COUNT >= db.length) {
             // Done.
             this.db = db;
-            setTimeout(this.nextQuery, 0);
+            if (this.nextQuery) {
+                setTimeout(this.nextQuery, 0);
+            }
         } else {
             setTimeout(() => this.prepSegment(db, start + BATCH_COUNT), BATCH_DELAY);
         }
     }
 }
 
-function scorePeony(query: string[], peony: ScoredPeony): number {
+function scorePeony(query: string[], peony: ScoredAugmentedPeony): number {
     let scores: number[] = [];
     let prevs: boolean[] = [];
 
@@ -190,20 +191,20 @@ export class DumbScoredSearch implements Searcher {
     private db: AugmentedPeony[];
 
     constructor() {
-        this.db = null;
+        this.db = [];
     }
 
-    public search(query: string, db: Peony[], results: ObservableArray<Peony>) {
-        if (this.db === null) {
-            this.db = <AugmentedPeony[]>db;
-            this.db.forEach(p => {
-                p.cultivar_norm = normalize(p.cultivar).split(" ");
-                p.description_norm = normalize(p.description).split(" ");
-                p.group_norm = normalize(p.group).split(" ");
-                p.originator_norm = normalize(p.originator).split(" ");
-            });
-        }
+    public initDb(db: Peony[]) {
+        this.db = <AugmentedPeony[]>db;
+        this.db.forEach(p => {
+            p.cultivar_norm = normalize(p.cultivar).split(" ");
+            p.description_norm = normalize(p.description).split(" ");
+            p.group_norm = normalize(p.group).split(" ");
+            p.originator_norm = normalize(p.originator).split(" ");
+        });
+    }
 
+    public search(query: string, results: IResultPaginator) {
         let terms = normalize(query).split(" ");
         let res = [];
         this.db.forEach(p => {
@@ -212,7 +213,6 @@ export class DumbScoredSearch implements Searcher {
             }
         });
 
-        res.sort((x, y) => y.score - x.score);
-        results(res);
+        results.searchResults(res);
     }
 }

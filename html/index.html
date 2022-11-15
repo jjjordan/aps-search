@@ -11,12 +11,12 @@
     <table>
       <thead>
         <tr>
-          <th>Name</th>
+          <th><a href="#" data-bind="click: results.setSorter.bind(results, 'cultivar')">Name <span data-bind="text: results.sorters.cultivar.indicator"></span></a></th>
           <th>Photo</th>
-          <th>Originator</th>
-          <th>Group</th>
-          <th>Country</th>
-          <th>Introduction Date</th>
+          <th><a href="#" data-bind="click: results.setSorter.bind(results, 'originator')">Originator <span data-bind="text: results.sorters.originator.indicator"></span></a></th>
+          <th><a href="#" data-bind="click: results.setSorter.bind(results, 'group')">Group <span data-bind="text: results.sorters.group.indicator"></span></a></th>
+          <th><a href="#" data-bind="click: results.setSorter.bind(results, 'country')">Country <span data-bind="text: results.sorters.country.indicator"></span></a></th>
+          <th><a href="#" data-bind="click: results.setSorter.bind(results, 'date')">Date <span data-bind="text: results.sorters.date.indicator"></span></a></th>
         </tr>
       </thead>
       <tbody data-bind="foreach: results.view">
