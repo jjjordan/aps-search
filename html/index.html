@@ -2,6 +2,12 @@
   <body>
     <input type="text" data-bind="textInput: searchBox, valueUpdate: 'afterkeydown'">
     <select data-bind="options: searchKinds, optionsText: 'label', value: searchKind"></select>
+    <p data-bind="foreach: prefixes">
+      <span data-bind="text: $index() > 0 ? '|' : ''"></span>
+      <span>
+        <a data-bind="text: $data, style: {'font-weight': $parent.alphaFilter() == $data ? 'bold' : ''}, click: $parent.setFilter.bind($parent, $data)" href="#"></a>
+      </span>
+    </p>
     <p data-bind="foreach: results.pages">
       <a data-bind="text: label, attr: {href: active() ? '#' : ''}, style: {'font-weight': selected() ? 'bold' : ''}, click: click"></a>
       &nbsp;&nbsp;

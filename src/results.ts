@@ -31,8 +31,8 @@ export class ResultPaginator implements IResultPaginator {
         this.goto(0);
     }
 
-    public resetResults() {
-        this.results = this.db;
+    public resetResults(results?: Peony[]) {
+        this.results = results || this.db;
         this.assignSorter(this.nonScoreSorter, false);
         this.goto(0);
     }

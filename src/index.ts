@@ -2,18 +2,22 @@ import { applyBindings, observable, Observable, observableArray, ObservableArray
 import { ResultPaginator } from "./results";
 import { NaiveSearch } from "./naivesearch";
 import { DumbScoredSearch, ScoredSearch } from "./scoredsearch";
+import { prefixFilter } from "./util";
 
 class ViewModel {
     public searchBox: Observable<string>;
     public searchKinds: ObservableArray<SearchKindItem>;
     public searchKind: Observable<SearchKindItem>;
     public results: ResultPaginator;
+    public alphaFilter: Observable<string>;
+    public prefixes: ObservableArray<string>;
 
     private allPeonies: Peony[];
 
     constructor(private searcher: Searcher) {
         this.results = new ResultPaginator(25);
         this.searchBox = observable();
+        this.alphaFilter = observable();
         this.searchKinds = observableArray(kinds);
         this.searchKind = observable(kinds[0]);
         this.searchBox.subscribe(x => this.onChange());
@@ -28,6 +32,24 @@ class ViewModel {
                 this.results.initDb(this.allPeonies);
                 this.searcher.initDb(this.allPeonies);
             });
+        
+        let alpha = [];
+        for (let i = 65; i <= 90; i++) {
+            alpha.push(String.fromCharCode(i));
+        }
+
+        this.prefixes = observableArray(alpha);
+    }
+
+    public setFilter(prefix: string): void {
+        this.alphaFilter(prefix);
+        this.searchBox("");
+        this.results.resetResults(prefixFilter(this.allPeonies, prefix));
+    }
+
+    public reset(): void {
+        this.alphaFilter("");
+        this.searchBox("");
     }
 
     private onChange(): void {
@@ -35,8 +57,13 @@ class ViewModel {
         let kind = this.searchKind().kind;
 
         if (srch.trim().length == 0) {
-            this.results.resetResults();
+            if (!this.alphaFilter()) {
+                this.results.resetResults();
+            }
+
             return;
+        } else if (this.alphaFilter()) {
+            this.alphaFilter("");
         }
 
         this.searcher.search(srch, kind, this.results);

@@ -38,3 +38,14 @@ export function normalize(s: string): string {
 
     return res.join("").toUpperCase();
 }
+
+export function prefixFilter(db: Peony[], prefix: string): Peony[] {
+    return db.filter(function(peony: AugmentedPeony): boolean {
+        // TODO: Maybe do something special with certain strings like '#', etc.
+        if (peony.cultivar_norm) {
+            return peony.cultivar_norm[0].startsWith(prefix);
+        } else {
+            return peony.cultivar.toUpperCase().startsWith(prefix);
+        }
+    });
+}
