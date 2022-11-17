@@ -1,0 +1,14 @@
+stages:
+- build
+
+variables:
+  TAG: $CI_BUILD_ID
+  REGPATH: $REGISTRY/$REGISTRY_PATH
+
+buildjob:
+  stage: build
+  script:
+  - docker build -t $REGPATH:$TAG .
+  - docker tag $REGPATH:$TAG $REGPATH:latest
+  - docker push $REGPATH:$TAG
+  - docker push $REGPATH:latest

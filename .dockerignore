@@ -1,0 +1,9 @@
+*
+!data/registry.json.bz2
+!src
+!html/*.html
+!html/*.css
+!gulpfile.js
+!package.json
+!package-lock.json
+!tsconfig.json
