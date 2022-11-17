@@ -1,10 +1,13 @@
-import { computed, Computed, observable, Observable, observableArray, ObservableArray, pureComputed } from 'knockout';
+import { computed, Computed, observable, Observable, observableArray, ObservableArray, PureComputed, pureComputed } from 'knockout';
 
 export class ResultPaginator implements IResultPaginator {
     public view: ObservableArray<Peony>;
     public pages: ObservableArray<BreadCrumb>;
     public range: Observable<string>;
     public sorters: {[name: string]: SortMethod};
+    public hasNext: Observable<boolean>;
+    public hasPrev: Observable<boolean>;
+
     private pageNo: number;
     private curSorter: SortMethod;
     private nonScoreSorter: SortMethod;
@@ -16,6 +19,8 @@ export class ResultPaginator implements IResultPaginator {
         this.view = observableArray();
         this.range = observable("");
         this.sorters = makeSorters();
+        this.hasNext = observable(false);
+        this.hasPrev = observable(false);
         this.curSorter = this.nonScoreSorter = this.sorters.default;
         this.pageNo = 0;
     }
@@ -37,8 +42,16 @@ export class ResultPaginator implements IResultPaginator {
         this.goto(0);
     }
 
+    public goNext(): void {
+        this.goto(this.pageNo + 1);
+    }
+
+    public goPrev(): void {
+        this.goto(this.pageNo - 1);
+    }
+
     public goto(idx: number): void {
-        if (idx < 0) {
+        if (idx < 0 || (this.results.length && idx >= Math.ceil(this.results.length / this.resultCount))) {
             return;
         }
         
@@ -96,13 +109,20 @@ export class ResultPaginator implements IResultPaginator {
         if (this.pages().length !== i) {
             this.pages(pages.slice(0, i));
         }
+
+        this.hasNext(this.pageNo < (pageCount - 1));
+        this.hasPrev(this.pageNo > 0);
     }
 
     private updateView(): void {
         let start = this.pageNo * this.resultCount;
         let end = Math.min(start + this.resultCount, this.results.length);
         this.view(this.results.slice(start, end));
-        this.range(start < end ? `[${start + 1} - ${end} of ${this.results.length}]` : "");
+        if (this.results.length > 0) {
+            this.range(start < end ? `[${start + 1} - ${end} of ${this.results.length}]` : "");
+        } else {
+            this.range("[0 results]");
+        }
     }
 
     public setSorter(name: string): void {
@@ -150,14 +170,12 @@ export class BreadCrumb {
 }
 
 class SortMethod {
-    private ascending: Observable<boolean>;
-    private selected: Observable<boolean>;
-    public indicator: Computed<string>;
+    public ascending: Observable<boolean>;
+    public selected: Observable<boolean>;
 
     constructor(private cmp: (x: ScoredPeony, y: ScoredPeony) => number) {
         this.ascending = observable(true);
         this.selected = observable(false);
-        this.indicator = pureComputed(() => this.computeIndicator());
     }
 
     public select(): void {
@@ -174,10 +192,6 @@ class SortMethod {
 
     public deselect(): void {
         this.selected(false);
-    }
-
-    private computeIndicator(): string {
-        return this.selected() ? (this.ascending() ? "\u25B2" : "\u25BC") : "";
     }
 
     public sort(res: ScoredPeony[]): void {

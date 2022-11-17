@@ -4,6 +4,8 @@ import { NaiveSearch } from "./naivesearch";
 import { DumbScoredSearch, ScoredSearch } from "./scoredsearch";
 import { prefixFilter } from "./util";
 
+declare var jQuery;
+
 class ViewModel {
     public searchBox: Observable<string>;
     public searchKinds: ObservableArray<SearchKindItem>;
@@ -50,6 +52,25 @@ class ViewModel {
     public reset(): void {
         this.alphaFilter("");
         this.searchBox("");
+    }
+
+    public next(): void {
+        this.results.goNext();
+        
+        //$('#peonies-list').scrollTop();
+        //document.getElementsByTagName('body')[0].animate({
+        //    scrollTop: document.getElementById('peonies-list').offsetTop,
+        //}, 2000);
+        //jQuery("body").scrollTop("#peonies-list");
+
+        // ??
+        jQuery("html").scrollTop(jQuery("#peonies-list"));
+    }
+
+    public prev(): void {
+        this.results.goPrev();
+        // ??
+        jQuery("html").scrollTop(jQuery("#peonies-list"));
     }
 
     private onChange(): void {
