@@ -1,0 +1,42 @@
+<html>
+  <body>
+    <input type="text" data-bind="textInput: searchBox, valueUpdate: 'afterkeydown'">
+    <select data-bind="options: searchKinds, optionsText: 'label', value: searchKind"></select>
+    <p data-bind="foreach: prefixes">
+      <span data-bind="text: $index() > 0 ? '|' : ''"></span>
+      <span>
+        <a data-bind="text: $data, style: {'font-weight': $parent.alphaFilter() == $data ? 'bold' : ''}, click: $parent.setFilter.bind($parent, $data)" href="#"></a>
+      </span>
+    </p>
+    <p data-bind="foreach: results.pages">
+      <a data-bind="text: label, attr: {href: active() ? '#' : ''}, style: {'font-weight': selected() ? 'bold' : ''}, click: click"></a>
+      &nbsp;&nbsp;
+    </p>
+    <p>
+      <span data-bind="text: results.range" style="font-weight: lighter;"></span>
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th><a href="#" data-bind="click: results.setSorter.bind(results, 'cultivar')">Name <span data-bind="text: results.sorters.cultivar.selected() ? results.sorters.cultivar.ascending() ? '\u25B2' : '\u25BC' : ''"></span></a></th>
+          <th>Photo</th>
+          <th><a href="#" data-bind="click: results.setSorter.bind(results, 'originator')">Originator <span data-bind="text: results.sorters.originator.selected() ? results.sorters.originator.ascending() ? '\u25B2' : '\u25BC' : ''"></span></a></th>
+          <th><a href="#" data-bind="click: results.setSorter.bind(results, 'group')">Group <span data-bind="text: results.sorters.group.selected() ? results.sorters.group.ascending() ? '\u25B2' : '\u25BC' : ''"></span></a></th>
+          <th><a href="#" data-bind="click: results.setSorter.bind(results, 'country')">Country <span data-bind="text: results.sorters.country.selected() ? results.sorters.country.ascending() ? '\u25B2' : '\u25BC' : ''"></span></a></th>
+          <th><a href="#" data-bind="click: results.setSorter.bind(results, 'date')">Date <span data-bind="text: results.sorters.date.selected() ? results.sorters.date.ascending() ? '\u25B2' : '\u25BC' : ''"></span></a></th>
+        </tr>
+      </thead>
+      <tbody data-bind="foreach: results.view">
+        <tr>
+          <td><a data-bind="attr: {href: url}, text: cultivar" target="top"></a></td>
+          <td><img data-bind="attr: {src: image}" width="128" height="128"></td>
+          <td data-bind="text: originator"></td>
+          <td data-bind="text: group"></td>
+          <td data-bind="text: country"></td>
+          <td data-bind="text: date"></td>
+        </tr>
+      </tbody>
+    </table>
+    <script src="bundle.js"></script>
+  </body>
+</html>
