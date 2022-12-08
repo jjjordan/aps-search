@@ -236,25 +236,6 @@ function makeSorters(normalized: boolean): {[name: string]: SortMethod} {
         return 0;
     }
 
-    function datecmp(x: string, y: string): number {
-        return (getDate(x) - getDate(y)) || stricmp(x, y);
-    }
-
-    const yearRegex = /[0-9]{4}/;
-    function getDate(s: string): number {
-        let m = s.match(yearRegex);
-        if (m) {
-            let y = parseInt(m[0]);
-            if (s.startsWith("bef.")) {
-                y -= 0.5;
-            }
-
-            return y;
-        } else {
-            return 9999;
-        }
-    }
-
     function defaultSort(x: ScoredPeony, y: ScoredPeony): number {
         return stricmp(x.cultivar, y.cultivar) || stricmp(x.originator, y.originator);
     }
@@ -270,7 +251,7 @@ function makeSorters(normalized: boolean): {[name: string]: SortMethod} {
             originator: new SortMethod((x, y) => stricmp(x.originator, y.originator) || defaultSort(x, y)),
             group: new SortMethod((x, y) => stricmp(x.group, y.group) || defaultSort(x, y)),
             country: new SortMethod((x, y) => stricmp(x.country, y.country) || defaultSort(x, y)),
-            date: new SortMethod((x, y) => datecmp(x.date, y.date) || defaultSort(x, y)),
+            date: new SortMethod((x, y) => stricmp(x.date, y.date) || defaultSort(x, y)),
             default: new SortMethod(defaultSort),
         };
     } else {
@@ -280,7 +261,7 @@ function makeSorters(normalized: boolean): {[name: string]: SortMethod} {
             originator: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => normcmp(x.originator_norm, y.originator_norm) || defaultSortNormalized(x, y)),
             group: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => normcmp(x.group_norm, y.group_norm) || defaultSortNormalized(x, y)),
             country: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => normcmp(x.country_norm, y.country_norm) || defaultSortNormalized(x, y)),
-            date: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => datecmp(x.date, y.date) || defaultSortNormalized(x, y)),
+            date: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => (x.date_val - y.date_val) || normcmp(x.date_norm, y.date_norm) || defaultSortNormalized(x, y)),
             default: new SortMethod(defaultSortNormalized),
         };
     }

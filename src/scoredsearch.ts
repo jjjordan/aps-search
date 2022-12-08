@@ -1,6 +1,6 @@
 import { ObservableArray } from "knockout";
 import { resourceLimits } from "worker_threads";
-import { normalize } from "./util";
+import { normalize, populateNormalized } from "./util";
 
 const BATCH_COUNT = 1000;
 const BATCH_DELAY = 5;
@@ -101,13 +101,7 @@ export class ScoredSearch implements Searcher {
 
     private prepSegment(db: Peony[], start: number, done: () => void) {
         for (let i = start, until = Math.min(db.length, start + BATCH_COUNT); i < until; i++) {
-            let aug: AugmentedPeony = db[i];
-            aug.cultivar_norm = normalize(aug.cultivar).split(" ");
-            aug.description_norm = normalize(aug.description).split(" ");
-            aug.originator_norm = normalize(aug.originator).split(" ");
-            aug.group_norm = normalize(aug.group).split(" ");
-            aug.date_norm = normalize(aug.date).split(" ");
-            aug.country_norm = normalize(aug.country).split(" ");
+            populateNormalized(db[i]);
         }
 
         if (start + BATCH_COUNT >= db.length) {
@@ -230,14 +224,7 @@ export class DumbScoredSearch implements Searcher {
 
     public initDb(db: Peony[]): Promise<void> {
         this.db = <AugmentedPeony[]>db;
-        this.db.forEach(p => {
-            p.cultivar_norm = normalize(p.cultivar).split(" ");
-            p.description_norm = normalize(p.description).split(" ");
-            p.group_norm = normalize(p.group).split(" ");
-            p.originator_norm = normalize(p.originator).split(" ");
-            p.country_norm = normalize(p.country).split(" ");
-            p.date_norm = normalize(p.date).split(" ");
-        });
+        this.db.forEach(populateNormalized);
 
         return new Promise((resolve, reject) => {
             resolve();

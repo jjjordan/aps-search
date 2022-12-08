@@ -22,6 +22,7 @@ interface AugmentedPeony extends Peony {
     group_norm?: string[];
     country_norm?: string[];
     date_norm?: string[];
+    date_val?: number;
 }
 
 interface ScoredAugmentedPeony extends ScoredPeony, AugmentedPeony {}
