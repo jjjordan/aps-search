@@ -237,8 +237,22 @@ function makeSorters(normalized: boolean): {[name: string]: SortMethod} {
     }
 
     function datecmp(x: string, y: string): number {
-        // TODO ...
-        return stricmp(x, y);
+        return (getDate(x) - getDate(y)) || stricmp(x, y);
+    }
+
+    const yearRegex = /[0-9]{4}/;
+    function getDate(s: string): number {
+        let m = s.match(yearRegex);
+        if (m) {
+            let y = parseInt(m[0]);
+            if (s.startsWith("bef.")) {
+                y -= 0.5;
+            }
+
+            return y;
+        } else {
+            return 9999;
+        }
     }
 
     function defaultSort(x: ScoredPeony, y: ScoredPeony): number {
