@@ -17,6 +17,8 @@ export class ScoredSearch implements Searcher {
     
     private searchProgress: NodeJS.Timeout;
 
+    public normalized: boolean = true;
+
     constructor() {
         this.delayTimer = null;
         this.forceTimer = null;
@@ -25,8 +27,10 @@ export class ScoredSearch implements Searcher {
         this.db = null;
     }
 
-    public initDb(db: Peony[]) {
-        this.prepareDb(db);
+    public initDb(db: Peony[]): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.prepareDb(db, resolve);
+        });
     }
 
     public search(query: string, kind: SearchKind, results: IResultPaginator): void {
@@ -91,11 +95,11 @@ export class ScoredSearch implements Searcher {
         }
     }
 
-    private prepareDb(db: Peony[]): void {
-        this.prepSegment(db, 0);
+    private prepareDb(db: Peony[], done: () => void): void {
+        this.prepSegment(db, 0, done);
     }
 
-    private prepSegment(db: Peony[], start: number) {
+    private prepSegment(db: Peony[], start: number, done: () => void) {
         for (let i = start, until = Math.min(db.length, start + BATCH_COUNT); i < until; i++) {
             let aug: AugmentedPeony = db[i];
             aug.cultivar_norm = normalize(aug.cultivar).split(" ");
@@ -112,8 +116,10 @@ export class ScoredSearch implements Searcher {
             if (this.nextQuery) {
                 setTimeout(this.nextQuery, 0);
             }
+
+            done();
         } else {
-            setTimeout(() => this.prepSegment(db, start + BATCH_COUNT), BATCH_DELAY);
+            setTimeout(() => this.prepSegment(db, start + BATCH_COUNT, done), BATCH_DELAY);
         }
     }
 }
@@ -216,11 +222,13 @@ function matchScore(query: string[], data: string[], scores: number[], prevs: bo
 export class DumbScoredSearch implements Searcher {
     private db: AugmentedPeony[];
 
+    public normalized: boolean = true;
+
     constructor() {
         this.db = [];
     }
 
-    public initDb(db: Peony[]) {
+    public initDb(db: Peony[]): Promise<void> {
         this.db = <AugmentedPeony[]>db;
         this.db.forEach(p => {
             p.cultivar_norm = normalize(p.cultivar).split(" ");
@@ -229,6 +237,10 @@ export class DumbScoredSearch implements Searcher {
             p.originator_norm = normalize(p.originator).split(" ");
             p.country_norm = normalize(p.country).split(" ");
             p.date_norm = normalize(p.date).split(" ");
+        });
+
+        return new Promise((resolve, reject) => {
+            resolve();
         });
     }
 

@@ -17,7 +17,7 @@ class ViewModel {
     private allPeonies: Peony[];
 
     constructor(private searcher: Searcher) {
-        this.results = new ResultPaginator(25);
+        this.results = new ResultPaginator(25, searcher.normalized);
         this.searchBox = observable();
         this.alphaFilter = observable();
         this.searchKinds = observableArray(kinds);
@@ -31,8 +31,7 @@ class ViewModel {
                 console.log("Fetched peony db: " + data.length);
                 this.allPeonies = data;
 
-                this.results.initDb(this.allPeonies);
-                this.searcher.initDb(this.allPeonies);
+                this.searcher.initDb(this.allPeonies).then(() => this.results.initDb(this.allPeonies));
             });
         
         let alpha = [];

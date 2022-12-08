@@ -2,12 +2,17 @@ export class NaiveSearch implements Searcher {
     private db: Peony[];
     private updated: number = 0;
 
+    public normalized: boolean = false;
+
     constructor() {
         this.db = [];
     }
 
-    public initDb(db: Peony[]) {
+    public initDb(db: Peony[]): Promise<void> {
         this.db = db.slice();
+        return new Promise((resolve, reject) => {
+            resolve();
+        });
     }
 
     public search(query: string, kind: SearchKind, results: IResultPaginator) {

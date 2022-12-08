@@ -27,8 +27,9 @@ interface AugmentedPeony extends Peony {
 interface ScoredAugmentedPeony extends ScoredPeony, AugmentedPeony {}
 
 interface Searcher {
-    initDb(db: Peony[]);
+    initDb(db: Peony[]): Promise<void>;
     search(query: string, kind: SearchKind, results: IResultPaginator);
+    normalized: boolean;
 }
 
 interface IResultPaginator {

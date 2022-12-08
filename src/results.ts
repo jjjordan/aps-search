@@ -14,11 +14,11 @@ export class ResultPaginator implements IResultPaginator {
     private db: Peony[];
     private results: ScoredPeony[];
 
-    constructor(private resultCount: number) {
+    constructor(private resultCount: number, searcherNormalized: boolean) {
         this.pages = observableArray();
         this.view = observableArray();
         this.range = observable("");
-        this.sorters = makeSorters();
+        this.sorters = makeSorters(searcherNormalized);
         this.hasNext = observable(false);
         this.hasPrev = observable(false);
         this.curSorter = this.nonScoreSorter = this.sorters.default;
@@ -203,7 +203,7 @@ class SortMethod {
     }
 }
 
-function makeSorters(): {[name: string]: SortMethod} {
+function makeSorters(normalized: boolean): {[name: string]: SortMethod} {
     function stricmp(x: string, y: string): number {
         let xu = x.toUpperCase();
         let yu = y.toUpperCase();
@@ -216,6 +216,26 @@ function makeSorters(): {[name: string]: SortMethod} {
         }
     }
 
+    function normcmp(x: string[], y: string[]): number {
+        let i = 0;
+        let count = Math.min(x.length, y.length);
+        for (; i < count; i++) {
+            if (x[i] < y[i]) {
+                return -1;
+            } else if (x[i] > y[i]) {
+                return 1;
+            }
+        }
+
+        if (x.length < y.length) {
+            return -1;
+        } else if (x.length > y.length) {
+            return 1;
+        }
+
+        return 0;
+    }
+
     function datecmp(x: string, y: string): number {
         // TODO ...
         return stricmp(x, y);
@@ -225,13 +245,29 @@ function makeSorters(): {[name: string]: SortMethod} {
         return stricmp(x.cultivar, y.cultivar) || stricmp(x.originator, y.originator);
     }
 
-    return {
-        score: new SortMethod((x, y) => y.score - x.score),
-        cultivar: new SortMethod((x, y) => stricmp(x.cultivar, y.cultivar) || defaultSort(x, y)),
-        originator: new SortMethod((x, y) => stricmp(x.originator, y.originator) || defaultSort(x, y)),
-        group: new SortMethod((x, y) => stricmp(x.group, y.group) || defaultSort(x, y)),
-        country: new SortMethod((x, y) => stricmp(x.country, y.country) || defaultSort(x, y)),
-        date: new SortMethod((x, y) => datecmp(x.date, y.date) || defaultSort(x, y)),
-        default: new SortMethod(defaultSort),
-    };
+    function defaultSortNormalized(x: AugmentedPeony, y: AugmentedPeony): number {
+        return normcmp(x.cultivar_norm, y.cultivar_norm) || normcmp(x.originator_norm, y.originator_norm);
+    }
+
+    if (!normalized) {
+        return {
+            score: new SortMethod((x, y) => y.score - x.score),
+            cultivar: new SortMethod((x, y) => stricmp(x.cultivar, y.cultivar) || defaultSort(x, y)),
+            originator: new SortMethod((x, y) => stricmp(x.originator, y.originator) || defaultSort(x, y)),
+            group: new SortMethod((x, y) => stricmp(x.group, y.group) || defaultSort(x, y)),
+            country: new SortMethod((x, y) => stricmp(x.country, y.country) || defaultSort(x, y)),
+            date: new SortMethod((x, y) => datecmp(x.date, y.date) || defaultSort(x, y)),
+            default: new SortMethod(defaultSort),
+        };
+    } else {
+        return {
+            score: new SortMethod((x, y) => y.score - x.score),
+            cultivar: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => normcmp(x.cultivar_norm, y.cultivar_norm) || defaultSortNormalized(x, y)),
+            originator: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => normcmp(x.originator_norm, y.originator_norm) || defaultSortNormalized(x, y)),
+            group: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => normcmp(x.group_norm, y.group_norm) || defaultSortNormalized(x, y)),
+            country: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => normcmp(x.country_norm, y.country_norm) || defaultSortNormalized(x, y)),
+            date: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => datecmp(x.date, y.date) || defaultSortNormalized(x, y)),
+            default: new SortMethod(defaultSortNormalized),
+        };
+    }
 }
