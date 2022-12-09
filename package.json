@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "gulp": "gulp"
   },
   "author": "",
   "license": "UNLICENSED",
@@ -13,6 +14,7 @@
     "browser-sync": "^2.27.10",
     "esbuild": "^0.15.13",
     "gulp": "^4.0.2",
+    "gulp-download2": "^1.1.0",
     "gulp-esbuild": "^0.10.6",
     "gulp-typescript": "^6.0.0-alpha.1",
     "typescript": "^4.8.4"
