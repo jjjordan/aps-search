@@ -136,6 +136,10 @@ jQuery(() => {
     //vm = new NaiveSearch();       // Simple implementation to compare against.
     //vm = new DumbScoredSearch();  // Simpler version of scored search.
 
+    if (typeof aps_registry !== "object") {
+        console.log("aps_registry undefined: Not loading registry.");
+    }
+
     if (makeResultsTable()) {
         applyBindings(new ViewModel(vm));
     }
