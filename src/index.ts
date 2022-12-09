@@ -3,6 +3,7 @@ import { ResultPaginator } from "./results";
 import { NaiveSearch } from "./naivesearch";
 import { DumbScoredSearch, ScoredSearch } from "./scoredsearch";
 import { prefixFilter } from "./util";
+import { makeResultsTable } from "./display";
 
 declare var jQuery;
 
@@ -102,8 +103,14 @@ const kinds: SearchKindItem[] = [
     {kind: "Group", label: "Group"},
     {kind: "Country", label: "Country"},
     {kind: "Date", label: "Introduction Date"},
-]
+];
 
-//applyBindings(new ViewModel(new NaiveSearch()));
-applyBindings(new ViewModel(new ScoredSearch()));
-//applyBindings(new ViewModel(new DumbScoredSearch()));
+jQuery(() => {
+    let vm = new ScoredSearch();
+    //vm = new NaiveSearch();       // Simple implementation to compare against.
+    //vm = new DumbScoredSearch();  // Simpler version of scored search.
+
+    if (makeResultsTable()) {
+        applyBindings(new ViewModel(vm));
+    }
+});

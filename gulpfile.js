@@ -7,7 +7,7 @@ const tsProject = ts.createProject('tsconfig.json');
 const server = browserSync.create();
 
 gulp.task('ts', () => {
-    return gulp.src(['src/*.ts'])
+    return gulp.src(['src/*.ts', 'src/*.tsx'])
         .pipe(tsProject())
         .pipe(gulp.dest('out/int/js'));
 });
@@ -46,7 +46,7 @@ function notify(done) {
 }
 
 function watch_ts(done) {
-    return gulp.watch(['src/*.ts'], gulp.series('esbuild', notify));
+    return gulp.watch(['src/*.ts', 'src/*.tsx'], gulp.series('esbuild', notify));
 }
 
 function watch_html(done) {
