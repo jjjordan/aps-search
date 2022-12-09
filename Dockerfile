@@ -4,6 +4,7 @@ WORKDIR /opt/search
 COPY gulpfile.js package.json package-lock.json /opt/search/
 RUN npm install
 
+COPY tsconfig.js /opt/search/
 COPY data /opt/search/data/
 RUN bzip2 -d /opt/search/data/registry.json.bz2
 COPY html /opt/search/html/
