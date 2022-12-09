@@ -42,10 +42,16 @@ export class ResultPaginator implements IResultPaginator {
         }
     }
 
-    public resetResults(results?: Peony[]) {
+    public resetResults(results?: Peony[], resetSorter?: boolean) {
         this.results = results || this.db;
         if (!this.applyInitialState()) {
-            this.assignSorter(this.nonScoreSorter, false);
+            if (resetSorter) {
+                this.sorters[default_sorter].reset();
+                this.assignSorter(default_sorter, false);
+            } else {
+                this.assignSorter(this.nonScoreSorter, false);
+            }
+
             this.goto(0);
         }
     }

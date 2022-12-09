@@ -91,7 +91,7 @@ class ViewModel {
 
         // Call this here because onChange won't get triggered sometimes.
         if (this.ready) {
-            this.results.resetResults();
+            this.results.resetResults(null, true);
             this.updateState();
         }
     }
