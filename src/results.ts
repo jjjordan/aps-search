@@ -21,7 +21,8 @@ export class ResultPaginator implements IResultPaginator {
         this.sorters = makeSorters(searcherNormalized);
         this.hasNext = observable(false);
         this.hasPrev = observable(false);
-        this.curSorter = this.nonScoreSorter = this.sorters.default;
+        this.curSorter = null;
+        this.nonScoreSorter = this.sorters[default_sorter];
         this.pageNo = 0;
     }
 
@@ -136,11 +137,14 @@ export class ResultPaginator implements IResultPaginator {
 
     private assignSorter(sorter: SortMethod, adjustDirection: boolean): void {
         if (this.curSorter !== sorter) {
-            if (adjustDirection) {
-                this.curSorter.reset();
+            if (this.curSorter) {
+                if (adjustDirection) {
+                    this.curSorter.reset();
+                }
+
+                this.curSorter.deselect();
             }
 
-            this.curSorter.deselect();
             this.curSorter = sorter;
             this.curSorter.select();
         } else if (adjustDirection) {
@@ -252,7 +256,6 @@ function makeSorters(normalized: boolean): {[name: string]: SortMethod} {
             group: new SortMethod((x, y) => stricmp(x.group, y.group) || defaultSort(x, y)),
             country: new SortMethod((x, y) => stricmp(x.country, y.country) || defaultSort(x, y)),
             date: new SortMethod((x, y) => stricmp(x.date, y.date) || defaultSort(x, y)),
-            default: new SortMethod(defaultSort),
         };
     } else {
         return {
@@ -262,7 +265,8 @@ function makeSorters(normalized: boolean): {[name: string]: SortMethod} {
             group: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => normcmp(x.group_norm, y.group_norm) || defaultSortNormalized(x, y)),
             country: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => normcmp(x.country_norm, y.country_norm) || defaultSortNormalized(x, y)),
             date: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => (x.date_val - y.date_val) || normcmp(x.date_norm, y.date_norm) || defaultSortNormalized(x, y)),
-            default: new SortMethod(defaultSortNormalized),
         };
     }
 }
+
+const default_sorter = "cultivar";
