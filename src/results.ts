@@ -58,8 +58,8 @@ export class ResultPaginator implements IResultPaginator {
 
     private applyInitialState(): boolean {
         if (this.initState) {
-            this.assignSorter(this.initState.sorter, false);
             this.sorters[this.initState.sorter].ascending(this.initState.direction == "ASC");
+            this.assignSorter(this.initState.sorter, false);
             this.goto(this.initState.pageNo);
             this.nonScoreSorter = this.initState.nonScoreSorter;
             this.initState = null;
