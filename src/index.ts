@@ -67,8 +67,10 @@ class ViewModel {
 
     private scrollAndGo(f: () => void): void {
         let y = document.getElementById('peonies-list').offsetTop;
-        setTimeout(() => window.scroll({ top: y, behavior: 'smooth' }), 75);
-        setTimeout(f, 150);
+        setTimeout(() => {
+            f();
+            window.scroll({ top: y, behavior: 'smooth' });
+        }, 75);
     }
 
     private onChange(): void {
