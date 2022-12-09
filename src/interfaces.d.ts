@@ -34,9 +34,17 @@ interface Searcher {
 }
 
 interface IResultPaginator {
-    searchResults(results: Peony[]);
+    searchResults(results: Peony[]): void;
     resetResults();
-    initDb(db: Peony[]);
+    initDb(db: Peony[]): Promise<void>;
 }
 
 type SearchKind = "All" | "Cultivar" | "Originator" | "Group" | "Date" | "Country";
+
+interface ApsRegistryInputs {
+    search: string;
+    data_url: string;
+}
+
+// Provided in the wordpress data.
+declare var aps_registry: ApsRegistryInputs;

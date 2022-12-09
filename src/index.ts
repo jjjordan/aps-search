@@ -16,37 +16,57 @@ class ViewModel {
     public prefixes: ObservableArray<string>;
 
     private allPeonies: Peony[];
+    private ready: boolean;
 
     constructor(private searcher: Searcher) {
         this.results = new ResultPaginator(25, searcher.normalized);
-        this.searchBox = observable();
-        this.alphaFilter = observable();
+        this.searchBox = observable("");
+        this.alphaFilter = observable("");
         this.searchKinds = observableArray(kinds);
         this.searchKind = observable(kinds[0]);
         this.searchBox.subscribe(x => this.onChange());
         this.searchKind.subscribe(x => this.onChange());
+        this.ready = false;
 
-        fetch("data/registry.json")
+        fetch(aps_registry.data_url)
             .then(resp => resp.json())
             .then(data => {
-                console.log("Fetched peony db: " + data.length);
                 this.allPeonies = data;
-
-                this.searcher.initDb(this.allPeonies).then(() => this.results.initDb(this.allPeonies));
+                this.searcher.initDb(this.allPeonies)
+                    .then(() => this.results.initDb(this.allPeonies))
+                    .then(() => {
+                        // Enable+start search after everything is initialized.
+                        this.ready = true;
+                        if (this.searchBox() !== "") {
+                            // Execute the search.
+                            this.onChange();
+                        } else if (this.alphaFilter() !== "") {
+                            // Somehow a filter was selected.
+                            this.setFilter(this.alphaFilter());
+                        } else {
+                            // Otherwise, just display the database.
+                            this.results.resetResults();
+                        }
+                    });
             });
-        
+
         let alpha = [];
         for (let i = 65; i <= 90; i++) {
             alpha.push(String.fromCharCode(i));
         }
 
         this.prefixes = observableArray(alpha);
+
+        // Initialize search.
+        this.searchBox(aps_registry.search);
     }
 
     public setFilter(prefix: string): void {
         this.alphaFilter(prefix);
         this.searchBox("");
-        this.results.resetResults(prefixFilter(this.allPeonies, prefix));
+        if (this.ready) {
+            this.results.resetResults(prefixFilter(this.allPeonies, prefix));
+        }
     }
 
     public reset(): void {
@@ -54,7 +74,9 @@ class ViewModel {
         this.searchBox("");
 
         // Call this here because onChange won't get triggered sometimes.
-        this.results.resetResults();
+        if (this.ready) {
+            this.results.resetResults();
+        }
     }
 
     public next(): void {
@@ -74,6 +96,10 @@ class ViewModel {
     }
 
     private onChange(): void {
+        if (!this.ready) {
+            return;
+        }
+
         let srch = this.searchBox();
         let kind = this.searchKind().kind;
 

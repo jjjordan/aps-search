@@ -24,11 +24,16 @@ export class ResultPaginator implements IResultPaginator {
         this.curSorter = null;
         this.nonScoreSorter = this.sorters[default_sorter];
         this.pageNo = 0;
+        this.db = this.results = [];
+
+        this.resetResults([]);
     }
 
-    public initDb(db: Peony[]): void {
+    public initDb(db: Peony[]): Promise<void> {
         this.db = db.slice();
-        this.resetResults();
+        return new Promise((resolve, reject) => {
+            resolve();
+        });
     }
 
     public searchResults(results: Peony[]) {
