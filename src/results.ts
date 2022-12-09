@@ -9,12 +9,12 @@ export class ResultPaginator implements IResultPaginator {
     public hasPrev: Observable<boolean>;
 
     private pageNo: number;
-    private curSorter: SortMethod;
-    private nonScoreSorter: SortMethod;
+    private curSorter: string;
+    private nonScoreSorter: string;
     private db: Peony[];
     private results: ScoredPeony[];
 
-    constructor(private resultCount: number, searcherNormalized: boolean) {
+    constructor(private resultCount: number, searcherNormalized: boolean, private initState: ResultsState) {
         this.pages = observableArray();
         this.view = observableArray();
         this.range = observable("");
@@ -22,11 +22,9 @@ export class ResultPaginator implements IResultPaginator {
         this.hasNext = observable(false);
         this.hasPrev = observable(false);
         this.curSorter = null;
-        this.nonScoreSorter = this.sorters[default_sorter];
+        this.nonScoreSorter = default_sorter;
         this.pageNo = 0;
         this.db = this.results = [];
-
-        this.resetResults([]);
     }
 
     public initDb(db: Peony[]): Promise<void> {
@@ -38,14 +36,41 @@ export class ResultPaginator implements IResultPaginator {
 
     public searchResults(results: Peony[]) {
         this.results = results;
-        this.assignSorter(this.sorters.score, false);
-        this.goto(0);
+        if (!this.applyInitialState()) {
+            this.assignSorter("score", false);
+            this.goto(0);
+        }
     }
 
     public resetResults(results?: Peony[]) {
         this.results = results || this.db;
-        this.assignSorter(this.nonScoreSorter, false);
-        this.goto(0);
+        if (!this.applyInitialState()) {
+            this.assignSorter(this.nonScoreSorter, false);
+            this.goto(0);
+        }
+    }
+
+    private applyInitialState(): boolean {
+        if (this.initState) {
+            this.assignSorter(this.initState.sorter, false);
+            this.sorters[this.initState.sorter].ascending(this.initState.direction == "ASC");
+            this.goto(this.initState.pageNo);
+            this.nonScoreSorter = this.initState.nonScoreSorter;
+            this.initState = null;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public getState(): ResultsState {
+        return {
+            direction: this.sorters[this.curSorter].ascending() ? "ASC" : "DESC",
+            sorter: this.curSorter,
+            nonScoreSorter: this.nonScoreSorter,
+            pageNo: this.pageNo,
+        };
     }
 
     public goNext(): void {
@@ -132,32 +157,32 @@ export class ResultPaginator implements IResultPaginator {
     }
 
     public setSorter(name: string): void {
-        this.assignSorter(this.sorters[name], true);
+        this.assignSorter(name, true);
         if (name !== "score") {
-            this.nonScoreSorter = this.curSorter;
+            this.nonScoreSorter = name;
         }
 
         this.updateView();
     }
 
-    private assignSorter(sorter: SortMethod, adjustDirection: boolean): void {
+    private assignSorter(sorter: string, adjustDirection: boolean): void {
         if (this.curSorter !== sorter) {
             if (this.curSorter) {
                 if (adjustDirection) {
-                    this.curSorter.reset();
+                    this.sorters[this.curSorter].reset();
                 }
 
-                this.curSorter.deselect();
+                this.sorters[this.curSorter].deselect();
             }
 
             this.curSorter = sorter;
-            this.curSorter.select();
+            this.sorters[sorter].select();
         } else if (adjustDirection) {
-            this.curSorter.select();
-            this.curSorter.toggle();
+            this.sorters[this.curSorter].select();
+            this.sorters[this.curSorter].toggle();
         }
 
-        this.curSorter.sort(this.results);
+        this.sorters[this.curSorter].sort(this.results);
     }
 }
 

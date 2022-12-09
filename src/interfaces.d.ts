@@ -48,3 +48,16 @@ interface ApsRegistryInputs {
 
 // Provided in the wordpress data.
 declare var aps_registry: ApsRegistryInputs;
+
+interface HistoryState {
+    search: string;
+    alpha: string;
+    results: ResultsState;
+}
+
+interface ResultsState {
+    sorter: string;
+    nonScoreSorter: string;
+    pageNo: number;
+    direction: "ASC" | "DESC";
+}

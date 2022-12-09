@@ -17,9 +17,10 @@ class ViewModel {
 
     private allPeonies: Peony[];
     private ready: boolean;
+    private setStateTimer: NodeJS.Timeout;
 
-    constructor(private searcher: Searcher) {
-        this.results = new ResultPaginator(25, searcher.normalized);
+    constructor(private searcher: Searcher, initState: HistoryState) {
+        this.results = new ResultPaginator(25, searcher.normalized, (initState || {}).results);
         this.searchBox = observable("");
         this.alphaFilter = observable("");
         this.searchKinds = observableArray(kinds);
@@ -27,6 +28,7 @@ class ViewModel {
         this.searchBox.subscribe(x => this.onChange());
         this.searchKind.subscribe(x => this.onChange());
         this.ready = false;
+        this.setStateTimer = null;
 
         fetch(aps_registry.data_url)
             .then(resp => resp.json())
@@ -58,7 +60,20 @@ class ViewModel {
         this.prefixes = observableArray(alpha);
 
         // Initialize search.
-        this.searchBox(aps_registry.search);
+        if (typeof initState === 'object' && initState !== null) {
+            this.searchBox(initState.search);
+            this.alphaFilter(initState.alpha);
+        } else if (aps_registry.search) {
+            // This differs slightly from the original behavior, which will always come back to
+            // the front of the results if invoked from the top-right. That behavior *feels wrong*
+            // so we'll defer to the most recent change always.
+            this.searchBox(aps_registry.search);
+        }
+
+        // Save state on unload.
+        window.addEventListener('beforeunload', () => {
+            this.replaceState();
+        });
     }
 
     public setFilter(prefix: string): void {
@@ -66,6 +81,7 @@ class ViewModel {
         this.searchBox("");
         if (this.ready) {
             this.results.resetResults(prefixFilter(this.allPeonies, prefix));
+            this.updateState();
         }
     }
 
@@ -76,15 +92,27 @@ class ViewModel {
         // Call this here because onChange won't get triggered sometimes.
         if (this.ready) {
             this.results.resetResults();
+            this.updateState();
         }
     }
 
     public next(): void {
-        this.scrollAndGo(() => this.results.goNext());
+        this.scrollAndGo(() => {
+            this.results.goNext();
+            this.updateState();
+        });
     }
 
     public prev(): void {
-        this.scrollAndGo(() => this.results.goPrev());
+        this.scrollAndGo(() => {
+            this.results.goPrev();
+            this.updateState();
+        });
+    }
+
+    public setSorter(name: string): void {
+        this.results.setSorter(name);
+        this.updateState();
     }
 
     private scrollAndGo(f: () => void): void {
@@ -114,6 +142,30 @@ class ViewModel {
         }
 
         this.searcher.search(srch, kind, this.results);
+        this.updateState();
+    }
+
+    private getState(): HistoryState {
+        return {
+            alpha: this.alphaFilter(),
+            search: this.searchBox(),
+            results: this.results.getState(),
+        };
+    }
+
+    private updateState(): void {
+        if (this.setStateTimer) {
+            clearTimeout(this.setStateTimer);
+        }
+
+        this.setStateTimer = setTimeout(() => {
+            this.replaceState();
+            this.setStateTimer = null;
+        }, 500);
+    }
+
+    private replaceState(): void {
+        window.history.replaceState(this.getState(), null, window.location.href);
     }
 }
 
@@ -141,6 +193,6 @@ jQuery(() => {
     }
 
     if (makeResultsTable()) {
-        applyBindings(new ViewModel(vm));
+        applyBindings(new ViewModel(vm, window.history.state));
     }
 });
