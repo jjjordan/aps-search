@@ -55,22 +55,17 @@ class ViewModel {
     }
 
     public next(): void {
-        this.results.goNext();
-        
-        //$('#peonies-list').scrollTop();
-        //document.getElementsByTagName('body')[0].animate({
-        //    scrollTop: document.getElementById('peonies-list').offsetTop,
-        //}, 2000);
-        //jQuery("body").scrollTop("#peonies-list");
-
-        // ??
-        jQuery("html").scrollTop(jQuery("#peonies-list"));
+        this.scrollAndGo(() => this.results.goNext());
     }
 
     public prev(): void {
-        this.results.goPrev();
-        // ??
-        jQuery("html").scrollTop(jQuery("#peonies-list"));
+        this.scrollAndGo(() => this.results.goPrev());
+    }
+
+    private scrollAndGo(f: () => void): void {
+        let y = document.getElementById('peonies-list').offsetTop;
+        setTimeout(() => window.scroll({ top: y, behavior: 'smooth' }), 75);
+        setTimeout(f, 150);
     }
 
     private onChange(): void {
