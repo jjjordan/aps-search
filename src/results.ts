@@ -47,11 +47,10 @@ export class ResultPaginator implements IResultPaginator {
         if (!this.applyInitialState()) {
             if (resetSorter) {
                 this.sorters[default_sorter].reset();
-                this.assignSorter(default_sorter, false);
-            } else {
-                this.assignSorter(this.nonScoreSorter, false);
+                this.nonScoreSorter = default_sorter;
             }
 
+            this.assignSorter(this.nonScoreSorter, false);
             this.goto(0);
         }
     }

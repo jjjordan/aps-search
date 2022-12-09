@@ -23,7 +23,7 @@ export class ViewModel {
         this.searchBox.subscribe(x => this.onChange());
         this.searchKind.subscribe(x => this.onChange());
         this.ready = false;
-        this.pageState = observable(null);
+        this.pageState = observable(initState);
 
         fetch(aps_registry.data_url)
             .then(resp => resp.json())
