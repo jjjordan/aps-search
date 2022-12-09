@@ -52,6 +52,9 @@ class ViewModel {
     public reset(): void {
         this.alphaFilter("");
         this.searchBox("");
+
+        // Call this here because onChange won't get triggered sometimes.
+        this.results.resetResults();
     }
 
     public next(): void {
