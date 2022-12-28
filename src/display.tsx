@@ -40,22 +40,22 @@ export function makeResultsTable(): boolean {
                                     </div>
                                     <div class="col-24 cultivar-row d-none d-sm-block">
                                         <div class="cultivar-inner">
-                                            <div class="cult-col filterable cultivar" data-bind="click: setSorter('cultivar'), class: (results.sorters.cultivar.ascending() ? 'down' : 'up') + (results.sorters.cultivar.selected() ? ' active' : '')">
+                                            <div class="cult-col filterable cultivar" data-bind="click: setSorter.bind($data, 'cultivar'), class: (results.sorters.cultivar.ascending() ? 'down' : 'up') + (results.sorters.cultivar.selected() ? ' active' : '')">
                                                 <span data-toggle="tooltip" data-placement="top" title="" data-original-title="Sort by Cultivar">Cultivar</span>
                                             </div>
                                             <div class="cult-col image">
                                                 Photo
                                             </div>
-                                            <div class="cult-col filterable originator" data-bind="click: setSorter('originator'), class: (results.sorters.originator.ascending() ? 'down' : 'up') + (results.sorters.originator.selected() ? ' active' : '')">
+                                            <div class="cult-col filterable originator" data-bind="click: setSorter.bind($data, 'originator'), class: (results.sorters.originator.ascending() ? 'down' : 'up') + (results.sorters.originator.selected() ? ' active' : '')">
                                                 <span data-toggle="tooltip" data-placement="top" title="" data-original-title="Sort by Originator">Originator</span>
                                             </div>
-                                            <div class="cult-col filterable group" data-bind="click: setSorter('group'), class: (results.sorters.group.ascending() ? 'down' : 'up') + (results.sorters.group.selected() ? ' active' : '')">
+                                            <div class="cult-col filterable group" data-bind="click: setSorter.bind($data, 'group'), class: (results.sorters.group.ascending() ? 'down' : 'up') + (results.sorters.group.selected() ? ' active' : '')">
                                                 <span data-toggle="tooltip" data-placement="top" title="" data-original-title="Sort by Group">Group</span>
                                             </div>
-                                            <div class="cult-col filterable country" data-bind="click: setSorter('country'), class: (results.sorters.country.ascending() ? 'down' : 'up') + (results.sorters.country.selected() ? ' active' : '')">
+                                            <div class="cult-col filterable country" data-bind="click: setSorter.bind($data, 'country'), class: (results.sorters.country.ascending() ? 'down' : 'up') + (results.sorters.country.selected() ? ' active' : '')">
                                                 <span data-toggle="tooltip" data-placement="top" title="" data-original-title="Sort by Country">Country</span>
                                             </div>
-                                            <div class="cult-col filterable year" data-bind="click: setSorter('date'), class: (results.sorters.date.ascending() ? 'down' : 'up') + (results.sorters.date.selected() ? ' active' : '')">
+                                            <div class="cult-col filterable year" data-bind="click: setSorter.bind($data, 'date'), class: (results.sorters.date.ascending() ? 'down' : 'up') + (results.sorters.date.selected() ? ' active' : '')">
                                                 <span data-toggle="tooltip" data-placement="top" title="" data-original-title="Sort by Introduction Date">Introduction Date</span>
                                             </div>
                                         </div>

@@ -40,8 +40,8 @@ export class ScoredSearch implements Searcher {
             return;
         }
         
-        const incrementalDelay = 100;
-        const maxDelay = 700;
+        const incrementalDelay = 50;
+        const maxDelay = 250;
 
         if (this.delayTimer !== null) {
             clearTimeout(this.delayTimer);
