@@ -10,12 +10,12 @@ export class ViewModel {
     public results: ResultPaginator;
     public alphaFilter: Observable<string>;
     public prefixes: ObservableArray<string>;
-    public pageState: Observable<HistoryState>;
 
     private allPeonies: Peony[];
     private ready: boolean;
 
-    constructor(private searcher: Searcher, registryInput: ApsRegistryInputs, initState: HistoryState) {
+    constructor(private searcher: Searcher, registryInput: ApsRegistryInputs, private pageState: Observable<HistoryState>) {
+        let initState = this.pageState();
         this.results = new ResultPaginator(25, searcher.normalized, (initState || {}).results);
         this.searchBox = observable("");
         this.alphaFilter = observable("");
@@ -24,7 +24,6 @@ export class ViewModel {
         this.searchBox.subscribe(x => this.onChange());
         this.searchKind.subscribe(x => this.onChange());
         this.ready = false;
-        this.pageState = observable(initState);
 
         // Load the database!
         fetch(registryInput.data_url)

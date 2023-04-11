@@ -1,7 +1,8 @@
-import { Observable } from 'knockout';
+import { Observable, observable } from 'knockout';
 
-// Stores app state in window.history
-export function bindHistory(state: Observable<HistoryState>): void {
+export function bindHistory(): Observable<HistoryState> {
+    let state = observable(window.history.state || null);
+
     // Save before navigating away.
     window.addEventListener('beforeunload', () => replaceState(state()));
 
@@ -17,11 +18,8 @@ export function bindHistory(state: Observable<HistoryState>): void {
             stateTimeout = null;
         }, 500);
     });
-}
 
-// Gets current state.
-export function getState(): HistoryState {
-    return window.history.state;
+    return state;
 }
 
 // Sets the window history state.

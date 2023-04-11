@@ -2,7 +2,7 @@ import { applyBindings } from "knockout";
 import { NaiveSearch } from "./naivesearch";
 import { DumbScoredSearch, ScoredSearch } from "./scoredsearch";
 import { makeResultsTable } from "./display";
-import { bindHistory, getState } from "./history";
+import { bindHistory } from "./history";
 import { ViewModel } from "./viewmodel";
 
 // NOTE: This module is intended to isolate the nitty-gritty of the registry page from
@@ -24,12 +24,11 @@ jQuery(() => {
     if (typeof aps_registry !== "object") {
         console.log("aps_registry undefined: Not loading registry.");
     } else if (makeResultsTable()) {
-        let vm = new ViewModel(search, aps_registry, getState());
+        // Get observable to represent window history.
+        let hstate = bindHistory();
+        let vm = new ViewModel(search, aps_registry, hstate);
 
         // Launch knockout bindings...
         applyBindings(vm);
-        
-        // Attach pageState observable to window history.
-        bindHistory(vm.pageState);
     }
 });
