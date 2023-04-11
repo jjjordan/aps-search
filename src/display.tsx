@@ -1,5 +1,9 @@
 import * as React from "jsx-dom";
 
+// makeResultsTable injects the necessary markup for the results area into the document.
+// The peony search page contains an empty div with id=app that serves as a placeholder
+// for this content. This markup will get picked up by knockout.js to bridge the results
+// page with the search routine's data model.
 export function makeResultsTable(): boolean {
     let appDiv = document.getElementById("app");
     if (appDiv) {

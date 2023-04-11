@@ -1,5 +1,8 @@
-import { computed, Computed, observable, Observable, observableArray, ObservableArray, PureComputed, pureComputed } from 'knockout';
+import { observable, Observable, observableArray, ObservableArray } from 'knockout';
 
+const default_sorter = "cultivar";
+
+// ResultPaginator manages the order and display of Peony objects, either from search results or the full database.
 export class ResultPaginator implements IResultPaginator {
     public view: ObservableArray<Peony>;
     public pages: ObservableArray<BreadCrumb>;
@@ -34,6 +37,7 @@ export class ResultPaginator implements IResultPaginator {
         });
     }
 
+    // searchResults switches to view the results of a search.
     public searchResults(results: Peony[]) {
         this.results = results;
         if (!this.applyInitialState()) {
@@ -42,6 +46,8 @@ export class ResultPaginator implements IResultPaginator {
         }
     }
 
+    // Resets the results such that the full database will be shown.
+    // This is also called once after the database is loaded.
     public resetResults(results?: Peony[], resetSorter?: boolean) {
         this.results = results || this.db;
         if (!this.applyInitialState()) {
@@ -55,6 +61,10 @@ export class ResultPaginator implements IResultPaginator {
         }
     }
 
+    // Applies the initState (from search history) for only the first search that comes in.
+    // Returns true if the state was applied (in which case the caller should cancel whatever
+    // it was going to do), and false if not. This is necessary to re-apply the previous state
+    // after navigating away and back.
     private applyInitialState(): boolean {
         if (this.initState) {
             this.sorters[this.initState.sorter].ascending(this.initState.direction == "ASC");
@@ -69,6 +79,8 @@ export class ResultPaginator implements IResultPaginator {
         return false;
     }
 
+    // Computes the state to retain in window history so that the current view can be restored
+    // after navigating away and back again.
     public getState(): ResultsState {
         return {
             direction: this.sorters[this.curSorter].ascending() ? "ASC" : "DESC",
@@ -78,24 +90,29 @@ export class ResultPaginator implements IResultPaginator {
         };
     }
 
+    // Next page.
     public goNext(): void {
         this.goto(this.pageNo + 1);
     }
 
+    // Previous page.
     public goPrev(): void {
         this.goto(this.pageNo - 1);
     }
 
+    // Goto page.
     public goto(idx: number): void {
+        // Make sure input is inbounds.
         if (idx < 0 || (this.results.length && idx >= Math.ceil(this.results.length / this.resultCount))) {
             return;
         }
         
         this.pageNo = idx;
         this.updateNavigation();
-        this.updateView();
+        this.updateCounter();
     }
 
+    // Update navigation-related observables
     private updateNavigation(): void {
         // Update page crumbs length.
         const pageCount = Math.ceil(this.results.length / this.resultCount);
@@ -150,7 +167,8 @@ export class ResultPaginator implements IResultPaginator {
         this.hasPrev(this.pageNo > 0);
     }
 
-    private updateView(): void {
+    // Updates the counter ("X-Y of Z")
+    private updateCounter(): void {
         let start = this.pageNo * this.resultCount;
         let end = Math.min(start + this.resultCount, this.results.length);
         this.view(this.results.slice(start, end));
@@ -161,15 +179,19 @@ export class ResultPaginator implements IResultPaginator {
         }
     }
 
+    // Called by view to set the sorter - can also be used to invert the sort direction
+    // if the specified sorter is already selected.
     public setSorter(name: string): void {
         this.assignSorter(name, true);
         if (name !== "score") {
             this.nonScoreSorter = name;
         }
 
-        this.updateView();
+        this.updateCounter();
     }
 
+    // Internal method to set the sorter. If `adjustDirection` is true, then the direction
+    // is inverted if the sorter is already selected.
     private assignSorter(sorter: string, adjustDirection: boolean): void {
         if (this.curSorter !== sorter) {
             if (this.curSorter) {
@@ -191,6 +213,8 @@ export class ResultPaginator implements IResultPaginator {
     }
 }
 
+// BreadCrumb denotes a navigation link for a page.
+// NOTE: This is not currently used by the view.
 export class BreadCrumb {
     public active: Observable<boolean>;
     public selected: Observable<boolean>;
@@ -208,6 +232,8 @@ export class BreadCrumb {
     }
 }
 
+// SortMethod encapsulates a sorter and tracks its state (selection, direction). It wraps a comparator
+// function that performs the actual sort. The properties here are bound to the view.
 class SortMethod {
     public ascending: Observable<boolean>;
     public selected: Observable<boolean>;
@@ -217,22 +243,27 @@ class SortMethod {
         this.selected = observable(false);
     }
 
+    // Select this sorter.
     public select(): void {
         this.selected(true);
     }
 
+    // Toggle direction.
     public toggle(): void {
         this.ascending(!this.ascending());
     }
 
+    // Reset direction (to ascending).
     public reset(): void {
         this.ascending(true);
     }
 
+    // Deselect this sorter.
     public deselect(): void {
         this.selected(false);
     }
 
+    // Sorts the specified array of peonies.
     public sort(res: ScoredPeony[]): void {
         if (this.ascending()) {
             res.sort((x, y) => this.cmp(x, y));
@@ -242,7 +273,10 @@ class SortMethod {
     }
 }
 
+// Builds the sorters to be used with search results. `normalized` indicates whether database entries
+// will have augmented fields (which are preferred for various reasons).
 function makeSorters(normalized: boolean): {[name: string]: SortMethod} {
+    // Does what it says.
     function stricmp(x: string, y: string): number {
         let xu = x.toUpperCase();
         let yu = y.toUpperCase();
@@ -255,6 +289,7 @@ function makeSorters(normalized: boolean): {[name: string]: SortMethod} {
         }
     }
 
+    // Compares two normalized arrays.
     function normcmp(x: string[], y: string[]): number {
         let i = 0;
         let count = Math.min(x.length, y.length);
@@ -275,33 +310,33 @@ function makeSorters(normalized: boolean): {[name: string]: SortMethod} {
         return 0;
     }
 
-    function defaultSort(x: ScoredPeony, y: ScoredPeony): number {
+    // Fallback comparator when cultivars compare equal
+    function defaultcmp(x: ScoredPeony, y: ScoredPeony): number {
         return stricmp(x.cultivar, y.cultivar) || stricmp(x.originator, y.originator);
     }
 
-    function defaultSortNormalized(x: AugmentedPeony, y: AugmentedPeony): number {
+    // Fallback comparator when cultivars compare equal
+    function defaultcmpnorm(x: AugmentedPeony, y: AugmentedPeony): number {
         return normcmp(x.cultivar_norm, y.cultivar_norm) || normcmp(x.originator_norm, y.originator_norm);
     }
 
     if (!normalized) {
         return {
             score: new SortMethod((x, y) => y.score - x.score),
-            cultivar: new SortMethod((x, y) => stricmp(x.cultivar, y.cultivar) || defaultSort(x, y)),
-            originator: new SortMethod((x, y) => stricmp(x.originator, y.originator) || defaultSort(x, y)),
-            group: new SortMethod((x, y) => stricmp(x.group, y.group) || defaultSort(x, y)),
-            country: new SortMethod((x, y) => stricmp(x.country, y.country) || defaultSort(x, y)),
-            date: new SortMethod((x, y) => stricmp(x.date, y.date) || defaultSort(x, y)),
+            cultivar: new SortMethod((x, y) => stricmp(x.cultivar, y.cultivar) || defaultcmp(x, y)),
+            originator: new SortMethod((x, y) => stricmp(x.originator, y.originator) || defaultcmp(x, y)),
+            group: new SortMethod((x, y) => stricmp(x.group, y.group) || defaultcmp(x, y)),
+            country: new SortMethod((x, y) => stricmp(x.country, y.country) || defaultcmp(x, y)),
+            date: new SortMethod((x, y) => stricmp(x.date, y.date) || defaultcmp(x, y)),
         };
     } else {
         return {
             score: new SortMethod((x, y) => y.score - x.score),
-            cultivar: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => normcmp(x.cultivar_norm, y.cultivar_norm) || defaultSortNormalized(x, y)),
-            originator: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => normcmp(x.originator_norm, y.originator_norm) || defaultSortNormalized(x, y)),
-            group: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => normcmp(x.group_norm, y.group_norm) || defaultSortNormalized(x, y)),
-            country: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => normcmp(x.country_norm, y.country_norm) || defaultSortNormalized(x, y)),
-            date: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => (x.date_val - y.date_val) || normcmp(x.date_norm, y.date_norm) || defaultSortNormalized(x, y)),
+            cultivar: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => normcmp(x.cultivar_norm, y.cultivar_norm) || defaultcmpnorm(x, y)),
+            originator: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => normcmp(x.originator_norm, y.originator_norm) || defaultcmpnorm(x, y)),
+            group: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => normcmp(x.group_norm, y.group_norm) || defaultcmpnorm(x, y)),
+            country: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => normcmp(x.country_norm, y.country_norm) || defaultcmpnorm(x, y)),
+            date: new SortMethod((x: AugmentedPeony, y: AugmentedPeony) => (x.date_val - y.date_val) || normcmp(x.date_norm, y.date_norm) || defaultcmpnorm(x, y)),
         };
     }
 }
-
-const default_sorter = "cultivar";

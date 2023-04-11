@@ -1,3 +1,6 @@
+// NaiveSearch implements a very simple search strategy -- it is believed to be the one
+// employed by the original database search (that this replaces), and is mostly intended
+// to be used to compare with better implementations. Everything done here is synchronous.
 export class NaiveSearch implements Searcher {
     private db: Peony[];
     private updated: number = 0;
@@ -9,6 +12,7 @@ export class NaiveSearch implements Searcher {
     }
 
     public initDb(db: Peony[]): Promise<void> {
+        // Copy and immediately resolve.
         this.db = db.slice();
         return new Promise((resolve, reject) => {
             resolve();
@@ -31,7 +35,11 @@ export class NaiveSearch implements Searcher {
             let group = peony.group.toUpperCase();
             let country = peony.country.toUpperCase();
             let hits = 0;
+
             for (let i = 0; i < terms.length; i++) {
+                // Just check whether the case-normalized search term appears in
+                // each appropriate field ...
+                
                 if (kind == "All" || kind == "Cultivar") {
                     if (cultivarUpper.indexOf(terms[i]) >= 0) {
                         hits++;

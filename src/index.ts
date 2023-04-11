@@ -2,10 +2,20 @@ import { applyBindings } from "knockout";
 import { NaiveSearch } from "./naivesearch";
 import { DumbScoredSearch, ScoredSearch } from "./scoredsearch";
 import { makeResultsTable } from "./display";
+import { bindHistory, getState } from "./history";
 import { ViewModel } from "./viewmodel";
 
+// NOTE: This module is intended to isolate the nitty-gritty of the registry page from
+// the bulk of the registry search functions, so that they can (conceivably) be tested
+// in isolation.
+
+// The template pulls in jQuery.
 declare var jQuery;
 
+// Provided in the wordpress data.
+declare var aps_registry: ApsRegistryInputs;
+
+// Onload ...
 jQuery(() => {
     let search = new ScoredSearch();
     //search = new NaiveSearch();       // Simple implementation to compare against.
@@ -13,29 +23,13 @@ jQuery(() => {
 
     if (typeof aps_registry !== "object") {
         console.log("aps_registry undefined: Not loading registry.");
-    }
+    } else if (makeResultsTable()) {
+        let vm = new ViewModel(search, aps_registry, getState());
 
-    if (makeResultsTable()) {
-        let vm = new ViewModel(search, window.history.state)
+        // Launch knockout bindings...
         applyBindings(vm);
         
-        // Save state ...
-        window.addEventListener('beforeunload', () => replaceState(vm.pageState()));
-
-        let stateTimeout: NodeJS.Timeout = null;
-        vm.pageState.subscribe(() => {
-            if (stateTimeout) {
-                clearTimeout(stateTimeout);
-            }
-
-            stateTimeout = setTimeout(() => {
-                replaceState(vm.pageState());
-                stateTimeout = null;
-            }, 500);
-        });
+        // Attach pageState observable to window history.
+        bindHistory(vm.pageState);
     }
 });
-
-function replaceState(state: HistoryState): void {
-    window.history.replaceState(state, null, window.location.href);
-}

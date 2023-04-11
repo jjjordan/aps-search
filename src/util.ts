@@ -1,3 +1,10 @@
+// Normalizes an input string:
+//  - Force all letters to upper-case
+//  - Remove:
+//    - Punctuation
+//    - Diacritics
+//    - HTML tags & entities
+//    - Consecutive spaces (>1)
 export function normalize(s: string): string {
     s = s.normalize("NFKD");
     let res = [];
@@ -42,6 +49,7 @@ export function normalize(s: string): string {
     return res.join("").toUpperCase();
 }
 
+// Fills in the fields of an AugmentedPeony with its normalized data.
 export function populateNormalized(p: AugmentedPeony): void {
     p.cultivar_norm = normalize(p.cultivar).split(" ");
     p.description_norm = normalize(p.description).split(" ");
@@ -53,6 +61,8 @@ export function populateNormalized(p: AugmentedPeony): void {
 }
 
 const yearRegex = /[0-9]{4}/;
+
+// Returns the year specified by a date string as it appears in the APS registry.
 function getDate(s: string): number {
     let m = s.match(yearRegex);
     if (m) {
@@ -67,6 +77,7 @@ function getDate(s: string): number {
     }
 }
 
+// Filters peonies by first letter of cultivar (preferring normalized data).
 export function prefixFilter(db: Peony[], prefix: string): Peony[] {
     return db.filter(function(peony: AugmentedPeony): boolean {
         // TODO: Maybe do something special with certain strings like '#', etc.

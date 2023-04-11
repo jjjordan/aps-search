@@ -2,6 +2,7 @@ import { observable, Observable, observableArray, ObservableArray } from "knocko
 import { ResultPaginator } from "./results";
 import { prefixFilter } from "./util";
 
+// ViewModel serves as the top-level knockout.JS viewmodel for the registry search.
 export class ViewModel {
     public searchBox: Observable<string>;
     public searchKinds: ObservableArray<SearchKindItem>;
@@ -14,7 +15,7 @@ export class ViewModel {
     private allPeonies: Peony[];
     private ready: boolean;
 
-    constructor(private searcher: Searcher, initState: HistoryState) {
+    constructor(private searcher: Searcher, registryInput: ApsRegistryInputs, initState: HistoryState) {
         this.results = new ResultPaginator(25, searcher.normalized, (initState || {}).results);
         this.searchBox = observable("");
         this.alphaFilter = observable("");
@@ -25,7 +26,8 @@ export class ViewModel {
         this.ready = false;
         this.pageState = observable(initState);
 
-        fetch(aps_registry.data_url)
+        // Load the database!
+        fetch(registryInput.data_url)
             .then(resp => resp.json())
             .then(data => {
                 this.allPeonies = data;
@@ -33,12 +35,13 @@ export class ViewModel {
                     .then(() => this.results.initDb(this.allPeonies))
                     .then(() => {
                         // Enable+start search after everything is initialized.
+                        // (either searches from history state or the registryInput)
                         this.ready = true;
                         if (this.searchBox() !== "") {
                             // Execute the search.
                             this.onChange();
                         } else if (this.alphaFilter() !== "") {
-                            // Somehow a filter was selected.
+                            // Select a filter.
                             this.setFilter(this.alphaFilter());
                         } else {
                             // Otherwise, just display the database.
@@ -47,6 +50,7 @@ export class ViewModel {
                     });
             });
 
+        // Initialize alpha filters. (populate A-Z)
         let alpha = [];
         for (let i = 65; i <= 90; i++) {
             alpha.push(String.fromCharCode(i));
@@ -58,14 +62,15 @@ export class ViewModel {
         if (typeof initState === 'object' && initState !== null) {
             this.searchBox(initState.search);
             this.alphaFilter(initState.alpha);
-        } else if (aps_registry.search) {
+        } else if (registryInput.search) {
             // This differs slightly from the original behavior, which will always come back to
             // the front of the results if invoked from the top-right. That behavior *feels wrong*
             // so we'll defer to the most recent change always.
-            this.searchBox(aps_registry.search);
+            this.searchBox(registryInput.search);
         }
     }
 
+    // Called by View to set a prefix filter.
     public setFilter(prefix: string): void {
         this.alphaFilter(prefix);
         this.searchBox("");
@@ -75,6 +80,7 @@ export class ViewModel {
         }
     }
 
+    // Called by the View on reset.
     public reset(): void {
         this.alphaFilter("");
         this.searchBox("");
@@ -86,6 +92,7 @@ export class ViewModel {
         }
     }
 
+    // Called by the View for 'Next >'
     public next(): void {
         this.scrollAndGo(() => {
             this.results.goNext();
@@ -93,6 +100,7 @@ export class ViewModel {
         });
     }
 
+    // Called by the View for '< Prev'
     public prev(): void {
         this.scrollAndGo(() => {
             this.results.goPrev();
@@ -100,11 +108,13 @@ export class ViewModel {
         });
     }
 
+    // Called by the View to change the sort column.
     public setSorter(name: string): void {
         this.results.setSorter(name);
         this.updateState();
     }
 
+    // Scrolls to the top of the result list -- after a short delay to allow results to update.
     private scrollAndGo(f: () => void): void {
         let elem = document.getElementById('peonies-list');
         if (elem) {
@@ -116,6 +126,7 @@ export class ViewModel {
         }
     }
 
+    // Called when search query or search kind changes.
     private onChange(): void {
         if (!this.ready) {
             return;
@@ -138,6 +149,7 @@ export class ViewModel {
         this.updateState();
     }
 
+    // Computes the HistoryState value to stash into history.
     private getState(): HistoryState {
         return {
             alpha: this.alphaFilter(),
@@ -146,16 +158,19 @@ export class ViewModel {
         };
     }
 
+    // Update pageState observable so that it can be stored in browser history (or wherever).
     private updateState(): void {
         this.pageState(this.getState());
     }
 }
 
+// ViewModel labels for search-kinds.
 interface SearchKindItem {
     kind: SearchKind;
     label: string;
 }
 
+// Constant list of search kinds.
 const kinds: SearchKindItem[] = [
     {kind: "All", label: "All"},
     {kind: "Cultivar", label: "Cultivar"},
