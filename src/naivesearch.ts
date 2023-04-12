@@ -20,7 +20,7 @@ export class NaiveSearch implements Searcher {
     }
 
     public search(query: string, kind: SearchKind, results: IResultPaginator) {
-        if (!query.length) {
+        if (!query) {
             return;
         }
 
