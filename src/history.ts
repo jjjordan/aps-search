@@ -1,6 +1,7 @@
 import { Observable, observable } from 'knockout';
 
-export function bindHistory(): Observable<HistoryState> {
+// Returns an observable bound to the page history state.
+export function bindState(): Observable<HistoryState> {
     let state = observable(window.history.state || null);
 
     // Save before navigating away.
