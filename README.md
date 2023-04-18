@@ -8,10 +8,11 @@ encourage contributions from others.
 
 ## How to build
 Build requires Node.JS and npm to be installed. Dependencies can be
-installed with `npm install`, then build can be invoked with `npm gulp rel`.
+installed with `npm install`, then build can be invoked with `npm run gulp
+rel`.
 
-A development server can be started with `npm gulp dev`, which will enable
-browsersync and hot reloads.
+A development server can be started with `npm run gulp dev`, which will
+enable browsersync and hot reloads.
 
 ## Technology stack
 Some of the dependencies used here are:
