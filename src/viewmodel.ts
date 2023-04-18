@@ -135,6 +135,9 @@ export class ViewModel {
         let kind = this.searchKind().kind;
 
         if (srch.trim().length == 0) {
+            // Allow search to cancel.
+            this.searcher.search("", kind, this.results);
+
             if (!this.alphaFilter()) {
                 this.results.resetResults();
             }

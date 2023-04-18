@@ -54,6 +54,26 @@ export class ScoredSearch implements Searcher {
             return;
         }
         
+        if (!query) {
+            // If empty query, we only need to cancel any active search.
+            if (this.delayTimer !== null) {
+                clearTimeout(this.delayTimer);
+                this.delayTimer = null;
+            }
+
+            if (this.forceTimer !== null) {
+                clearTimeout(this.forceTimer);
+                this.forceTimer = null;
+            }
+
+            if (this.searchProgress !== null) {
+                clearTimeout(this.searchProgress);
+                this.searchProgress = null;
+            }
+
+            return;
+        }
+
         // Call execSearch if no keystroke comes in before INCREMENTAL_DELAY elapses...
         if (this.delayTimer !== null) {
             clearTimeout(this.delayTimer);
@@ -269,6 +289,10 @@ export class DumbScoredSearch implements Searcher {
     }
 
     public search(query: string, kind: SearchKind, results: IResultPaginator) {
+        if (!query) {
+            return;
+        }
+        
         let terms = normalize(query).split(" ");
         let res = [];
         this.db.forEach(p => {
