@@ -100,3 +100,12 @@ interface ResultsState {
     // Sort direction.
     direction: "ASC" | "DESC";
 }
+
+interface CachedResults {
+    version: number;
+    
+    view: ScoredAugmentedPeony[];
+    range: string;
+    hasNext: boolean;
+    hasPrev: boolean;
+}
