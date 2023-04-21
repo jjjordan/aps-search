@@ -91,16 +91,16 @@ interface ResultsState {
     // Version number
     version: number;
 
-    // The active sorter.
+    // The active sorter
     sorter: string;
 
-    // The sorter that was active before applying the score sorter.
+    // The sorter that was active before applying the score sorter
     nonScoreSorter: string;
 
-    // Current page number.
+    // Current page number
     pageNo: number;
 
-    // Sort direction.
+    // Sort direction
     direction: "ASC" | "DESC";
 
     // Result snapshot
@@ -111,8 +111,15 @@ interface ResultsState {
 }
 
 interface CachedResults {
+    // Current visible results
     view: ScoredAugmentedPeony[];
+
+    // Displayed result range, e.g. "1-25 of XX"
     range: string;
+
+    // Whether the NEXT button is enabled
     hasNext: boolean;
+
+    // Whether the PREV button is enabled
     hasPrev: boolean;
 }

@@ -9,9 +9,6 @@ import { ViewModel } from "./viewmodel";
 // the bulk of the registry search functions, so that they can (conceivably) be tested
 // in isolation.
 
-// The template pulls in jQuery.
-//declare var jQuery;
-
 // Provided in the wordpress data.
 declare var aps_registry: ApsRegistryInputs;
 

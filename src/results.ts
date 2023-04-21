@@ -1,10 +1,11 @@
 import { observable, Observable, observableArray, ObservableArray } from 'knockout';
+import { EventEmitter2 } from 'eventemitter2';
 
 const default_sorter = "cultivar";
 const cached_results_version = 0;
 
 // ResultPaginator manages the order and display of Peony objects, either from search results or the full database.
-export class ResultPaginator implements IResultPaginator {
+export class ResultPaginator extends EventEmitter2 implements IResultPaginator {
     public view: ObservableArray<Peony>;
     public pages: ObservableArray<BreadCrumb>;
     public range: Observable<string>;
@@ -18,11 +19,10 @@ export class ResultPaginator implements IResultPaginator {
     private db: Peony[];
     private results: ScoredPeony[];
     private ready: boolean;
-    private onreadyQueue: {(): void}[];
-    private listeners: {(): void}[];
     private stateInitialized: boolean;
 
     constructor(private resultCount: number, searcherNormalized: boolean, private initState: ResultsState) {
+        super();
         this.pages = observableArray();
         this.view = observableArray();
         this.range = observable("");
@@ -34,10 +34,8 @@ export class ResultPaginator implements IResultPaginator {
         this.pageNo = 0;
         this.db = this.results = [];
         this.ready = false;
-        this.onreadyQueue = [];
-        this.listeners = [];
 
-        this.view.subscribe(() => this.notify());
+        this.view.subscribe(() => this.emit('change'));
         
         if (typeof initState === 'object' && initState !== null && initState.version === cached_results_version) {
             // Load up initial state.
@@ -72,7 +70,7 @@ export class ResultPaginator implements IResultPaginator {
             this.goto(0);
         }
 
-        this.listeners.forEach(f => f());
+        this.emit('change');
     }
 
     // Resets the results such that the full database will be shown.
@@ -89,17 +87,7 @@ export class ResultPaginator implements IResultPaginator {
             this.goto(0);
         }
 
-        this.listeners.forEach(f => f());
-    }
-
-    // Subscribes to changes (new results, changed view, etc)
-    public subscribe(f: () => void): void {
-        this.listeners.push(f);
-    }
-
-    // Notify listeners
-    private notify(): void {
-        this.listeners.forEach(f => f());
+        this.emit('change');
     }
 
     // Applies the initState (from search history) for only the first search that comes in.
@@ -111,8 +99,7 @@ export class ResultPaginator implements IResultPaginator {
         let result: boolean;
         if (!this.ready && this.stateInitialized && this.results.length === this.initState.count) {
             this.sorters[this.curSorter].sort(this.results);
-            this.onreadyQueue.forEach(f => f());
-            this.onreadyQueue.splice(0, this.onreadyQueue.length);
+            this.emit('ready');
             result = true;
         } else {
             result = false;
@@ -143,21 +130,11 @@ export class ResultPaginator implements IResultPaginator {
 
     // Next page.
     public goNext(): void {
-        if (!this.ready) {
-            this.onreadyQueue.push(() => this.goNext());
-            return;
-        }
-
         this.goto(this.pageNo + 1);
     }
 
     // Previous page.
     public goPrev(): void {
-        if (!this.ready) {
-            this.onreadyQueue.push(() => this.goPrev());
-            return;
-        }
-        
         this.goto(this.pageNo - 1);
     }
 
@@ -243,11 +220,6 @@ export class ResultPaginator implements IResultPaginator {
     // Called by view to set the sorter - can also be used to invert the sort direction
     // if the specified sorter is already selected.
     public setSorter(name: string): void {
-        if (!this.ready) {
-            this.onreadyQueue.push(() => this.setSorter(name));
-            return;
-        }
-
         this.assignSorter(name, true);
         if (name !== "score") {
             this.nonScoreSorter = name;

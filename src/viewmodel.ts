@@ -15,6 +15,7 @@ export class ViewModel {
 
     private allPeonies: Peony[];
     private ready: boolean;
+    private onreadyQueue: {(): void}[];
 
     constructor(private searcher: Searcher, registryInput: ApsRegistryInputs, private pageState: Observable<HistoryState>, private homeState: Observable<HistoryState>) {
         let initState = this.pageState() || (registryInput.search ? null : this.homeState());
@@ -25,46 +26,59 @@ export class ViewModel {
         this.searchKind = observable(kinds[0]);
         this.searchBox.subscribe(x => this.onChange());
         this.searchKind.subscribe(x => this.onChange());
-        this.results.subscribe(() => this.updateState());
         this.ready = false;
+        this.onreadyQueue = [];
+
+        this.results.on('change', () => this.updateState());
+        this.results.on('ready', () => this.onreadyQueue.forEach(f => f()));
 
         // Load the database!
         fetch(registryInput.data_url)
             .then(resp => resp.json())
+            /*
+            .then(data => {
+                const delay = 5000;
+                return new Promise<any>((resolve, reject) => {
+                    setTimeout(() => {
+                        resolve(data);
+                    }, delay);
+                });
+            })
+            */
             .then(data => {
                 this.allPeonies = data;
-                this.searcher.initDb(this.allPeonies)
-                    .then(() => this.results.initDb(this.allPeonies))
-                    .then(() => {
-                        // Enable+start search after everything is initialized.
-                        // (either searches from history state or the registryInput)
-                        this.ready = true;
-                        if (this.searchBox() !== "") {
-                            // Execute the search.
-                            this.onChange();
-                        } else if (this.alphaFilter() !== "") {
-                            // Select a filter.
-                            this.setFilter(this.alphaFilter());
-                        } else {
-                            // Otherwise, just display the database.
-                            this.results.resetResults();
-                        }
+                return this.searcher.initDb(this.allPeonies);
+            })
+            .then(() => this.results.initDb(this.allPeonies))
+            .then(() => {
+                // Enable+start search after everything is initialized.
+                // (either searches from history state or the registryInput)
+                this.ready = true;
+                if (this.searchBox() !== "") {
+                    // Execute the search.
+                    this.onChange();
+                } else if (this.alphaFilter() !== "") {
+                    // Select a filter.
+                    this.setFilter(this.alphaFilter());
+                } else {
+                    // Otherwise, just display the database.
+                    this.results.resetResults();
+                }
 
-                        // Capture home history state (cached version of front page w/ empty search)
-                        // but like, do it later.
-                        setTimeout(() => {
-                            let tmpres = new ResultPaginator(RESULT_COUNT, searcher.normalized, undefined);
-                            tmpres.initDb(this.allPeonies)
-                                .then(() => {
-                                    tmpres.resetResults();
-                                    this.homeState({
-                                        results: tmpres.getState(),
-                                        alpha: "",
-                                        search: ""
-                                    });
-                                })
-                        }, 5000);
-                    });
+                // Capture home history state (cached version of front page w/ empty search)
+                // but like, do it later.
+                setTimeout(() => {
+                    let tmpres = new ResultPaginator(RESULT_COUNT, searcher.normalized, undefined);
+                    tmpres.initDb(this.allPeonies)
+                        .then(() => {
+                            tmpres.resetResults();
+                            this.homeState({
+                                results: tmpres.getState(),
+                                alpha: "",
+                                search: ""
+                            });
+                        })
+                }, 5000);
             });
 
         // Initialize alpha filters. (populate A-Z)
@@ -89,6 +103,11 @@ export class ViewModel {
 
     // Called by View to set a prefix filter.
     public setFilter(prefix: string): void {
+        if (!this.ready) {
+            this.onreadyQueue.push(() => this.setFilter(prefix));
+            return;
+        }
+
         this.alphaFilter(prefix);
         this.searchBox("");
         if (this.ready) {
@@ -99,6 +118,11 @@ export class ViewModel {
 
     // Called by the View on reset.
     public reset(): void {
+        if (!this.ready) {
+            this.onreadyQueue.push(() => this.reset());
+            return;
+        }
+
         this.alphaFilter("");
         this.searchBox("");
 
@@ -111,6 +135,11 @@ export class ViewModel {
 
     // Called by the View for 'Next >'
     public next(): void {
+        if (!this.ready) {
+            this.onreadyQueue.push(() => this.next());
+            return;
+        }
+
         this.scrollAndGo(() => {
             this.results.goNext();
             this.updateState();
@@ -119,6 +148,11 @@ export class ViewModel {
 
     // Called by the View for '< Prev'
     public prev(): void {
+        if (!this.ready) {
+            this.onreadyQueue.push(() => this.prev());
+            return;
+        }
+
         this.scrollAndGo(() => {
             this.results.goPrev();
             this.updateState();
@@ -127,6 +161,11 @@ export class ViewModel {
 
     // Called by the View to change the sort column.
     public setSorter(name: string): void {
+        if (!this.ready) {
+            this.onreadyQueue.push(() => this.setSorter(name));
+            return;
+        }
+
         this.results.setSorter(name);
         this.updateState();
     }
