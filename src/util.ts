@@ -60,7 +60,7 @@ export function populateNormalized(p: AugmentedPeony): void {
     p.date_val = getDate(p.date);
 }
 
-const yearRegex = /[0-9]{4}/;
+const yearRegex = /(1[5-9]|20)[0-9]{2}/;
 
 // Returns the year specified by a date string as it appears in the APS registry.
 function getDate(s: string): number {

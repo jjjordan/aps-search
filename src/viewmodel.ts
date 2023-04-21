@@ -17,8 +17,8 @@ export class ViewModel {
     private ready: boolean;
     private onreadyQueue: {(): void}[];
 
-    constructor(private searcher: Searcher, registryInput: ApsRegistryInputs, private pageState: Observable<HistoryState>, private homeState: Observable<HistoryState>) {
-        let initState = this.pageState() || (registryInput.search ? null : this.homeState());
+    constructor(private searcher: Searcher, registryInput: ApsRegistryInputs, private pageState: Observable<HistoryState>, homeState: Observable<HistoryState>) {
+        let initState = this.pageState() || (registryInput.search ? null : homeState());
         this.results = new ResultPaginator(RESULT_COUNT, searcher.normalized, (initState || {}).results);
         this.searchBox = observable("");
         this.alphaFilter = observable("");
@@ -35,7 +35,7 @@ export class ViewModel {
         // Load the database!
         fetch(registryInput.data_url)
             .then(resp => resp.json())
-            /*
+            /* Debugging pre-load interactions:
             .then(data => {
                 const delay = 5000;
                 return new Promise<any>((resolve, reject) => {
@@ -65,20 +65,7 @@ export class ViewModel {
                     this.results.resetResults();
                 }
 
-                // Capture home history state (cached version of front page w/ empty search)
-                // but like, do it later.
-                setTimeout(() => {
-                    let tmpres = new ResultPaginator(RESULT_COUNT, searcher.normalized, undefined);
-                    tmpres.initDb(this.allPeonies)
-                        .then(() => {
-                            tmpres.resetResults();
-                            this.homeState({
-                                results: tmpres.getState(),
-                                alpha: "",
-                                search: ""
-                            });
-                        })
-                }, 5000);
+                this.saveHomeState(homeState);
             });
 
         // Initialize alpha filters. (populate A-Z)
@@ -206,7 +193,7 @@ export class ViewModel {
 
         this.searcher.search(srch, kind, this.results);
         
-        // We used to update state here, but now we'll wait for the search to finish (subscribe/notify callback)
+        // We used to update state here, but now we'll wait for the search to finish ('change' event)
     }
 
     // Computes the HistoryState value to stash into history.
@@ -221,6 +208,23 @@ export class ViewModel {
     // Update pageState observable so that it can be stored in browser history (or wherever).
     private updateState(): void {
         this.pageState(this.getState());
+    }
+
+    // Saves the home results (blank query, first 25 entries in the DB) to storage after the DB is loaded.
+    private saveHomeState(homeState: Observable<HistoryState>): void {
+        // Delay by a few secondsd to allow bindings to update, etc.
+        setTimeout(() => {
+            let tmpres = new ResultPaginator(RESULT_COUNT, this.searcher.normalized, undefined);
+            tmpres.initDb(this.allPeonies)
+                .then(() => {
+                    tmpres.resetResults();
+                    homeState({
+                        results: tmpres.getState(),
+                        alpha: "",
+                        search: ""
+                    });
+                })
+        }, 5000);
     }
 }
 

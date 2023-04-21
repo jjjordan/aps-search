@@ -7,21 +7,20 @@ export function pageState(): Observable<HistoryState> {
 
 // Returns an observable that writes out to local storage (for the initial state)
 export function homeState(): Observable<HistoryState> {
-    return bindWindowStorage("initState", window.localStorage);
+    return bindWindowStorage("homeState", window.localStorage);
 }
 
 // Gets the ID for pageState storage.
 function pageStateId(): string {
     let whstate = window.history.state || {};
     let psid: string = whstate.pageStateId;
-    if (psid) {
-        return psid;
-    } else {
+    if (!psid) {
         // First visit to this page in the history? Make an ID and bind it.
         psid = "" + new Date().getTime();
         window.history.replaceState({pageStateId: psid}, null, window.location.href);
-        return psid;
     }
+
+    return psid;
 }
 
 // Builds the observable that is bound to DOM window storage.
