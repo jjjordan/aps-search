@@ -6,7 +6,7 @@ export function pageState(): Observable<HistoryState> {
 }
 
 // Returns an observable that writes out to local storage (for the initial state)
-export function initState(): Observable<CachedResults> {
+export function homeState(): Observable<HistoryState> {
     return bindWindowStorage("initState", window.localStorage);
 }
 

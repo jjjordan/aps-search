@@ -1,6 +1,7 @@
 import { observable, Observable, observableArray, ObservableArray } from 'knockout';
 
 const default_sorter = "cultivar";
+const cached_results_version = 0;
 
 // ResultPaginator manages the order and display of Peony objects, either from search results or the full database.
 export class ResultPaginator implements IResultPaginator {
@@ -16,6 +17,10 @@ export class ResultPaginator implements IResultPaginator {
     private nonScoreSorter: string;
     private db: Peony[];
     private results: ScoredPeony[];
+    private ready: boolean;
+    private onreadyQueue: {(): void}[];
+    private listeners: {(): void}[];
+    private stateInitialized: boolean;
 
     constructor(private resultCount: number, searcherNormalized: boolean, private initState: ResultsState) {
         this.pages = observableArray();
@@ -24,10 +29,32 @@ export class ResultPaginator implements IResultPaginator {
         this.sorters = makeSorters(searcherNormalized);
         this.hasNext = observable(false);
         this.hasPrev = observable(false);
-        this.curSorter = null;
+        this.curSorter = default_sorter;
         this.nonScoreSorter = default_sorter;
         this.pageNo = 0;
         this.db = this.results = [];
+        this.ready = false;
+        this.onreadyQueue = [];
+        this.listeners = [];
+
+        this.view.subscribe(() => this.notify());
+        
+        if (typeof initState === 'object' && initState !== null && initState.version === cached_results_version) {
+            // Load up initial state.
+            this.sorters[initState.sorter].ascending(initState.direction === 'ASC');
+            this.sorters[initState.sorter].select();
+            this.curSorter = initState.sorter;
+            this.pageNo = initState.pageNo;
+            this.nonScoreSorter = initState.nonScoreSorter;
+            this.view(initState.results.view);
+            this.range(initState.results.range);
+            this.hasPrev(initState.results.hasPrev);
+            this.hasNext(initState.results.hasNext);
+
+            this.stateInitialized = true;
+        } else {
+            this.stateInitialized = false;
+        }
     }
 
     public initDb(db: Peony[]): Promise<void> {
@@ -44,6 +71,8 @@ export class ResultPaginator implements IResultPaginator {
             this.assignSorter("score", false);
             this.goto(0);
         }
+
+        this.listeners.forEach(f => f());
     }
 
     // Resets the results such that the full database will be shown.
@@ -59,6 +88,18 @@ export class ResultPaginator implements IResultPaginator {
             this.assignSorter(this.nonScoreSorter, false);
             this.goto(0);
         }
+
+        this.listeners.forEach(f => f());
+    }
+
+    // Subscribes to changes (new results, changed view, etc)
+    public subscribe(f: () => void): void {
+        this.listeners.push(f);
+    }
+
+    // Notify listeners
+    private notify(): void {
+        this.listeners.forEach(f => f());
     }
 
     // Applies the initState (from search history) for only the first search that comes in.
@@ -66,37 +107,57 @@ export class ResultPaginator implements IResultPaginator {
     // it was going to do), and false if not. This is necessary to re-apply the previous state
     // after navigating away and back.
     private applyInitialState(): boolean {
-        if (this.initState) {
-            this.sorters[this.initState.sorter].ascending(this.initState.direction == "ASC");
-            this.assignSorter(this.initState.sorter, false);
-            this.goto(this.initState.pageNo);
-            this.nonScoreSorter = this.initState.nonScoreSorter;
-            this.initState = null;
-
-            return true;
+        // This stuff has already been applied, we now need to 
+        let result: boolean;
+        if (!this.ready && this.stateInitialized && this.results.length === this.initState.count) {
+            this.sorters[this.curSorter].sort(this.results);
+            this.onreadyQueue.forEach(f => f());
+            this.onreadyQueue.splice(0, this.onreadyQueue.length);
+            result = true;
+        } else {
+            result = false;
         }
 
-        return false;
+        this.ready = true;
+        return result;
     }
 
     // Computes the state to retain in window history so that the current view can be restored
     // after navigating away and back again.
     public getState(): ResultsState {
         return {
+            version: cached_results_version,
             direction: this.sorters[this.curSorter].ascending() ? "ASC" : "DESC",
             sorter: this.curSorter,
             nonScoreSorter: this.nonScoreSorter,
             pageNo: this.pageNo,
+            count: this.results.length,
+            results: {
+                view: this.view(),
+                range: this.range(),
+                hasNext: this.hasNext(),
+                hasPrev: this.hasPrev(),
+            }
         };
     }
 
     // Next page.
     public goNext(): void {
+        if (!this.ready) {
+            this.onreadyQueue.push(() => this.goNext());
+            return;
+        }
+
         this.goto(this.pageNo + 1);
     }
 
     // Previous page.
     public goPrev(): void {
+        if (!this.ready) {
+            this.onreadyQueue.push(() => this.goPrev());
+            return;
+        }
+        
         this.goto(this.pageNo - 1);
     }
 
@@ -182,6 +243,11 @@ export class ResultPaginator implements IResultPaginator {
     // Called by view to set the sorter - can also be used to invert the sort direction
     // if the specified sorter is already selected.
     public setSorter(name: string): void {
+        if (!this.ready) {
+            this.onreadyQueue.push(() => this.setSorter(name));
+            return;
+        }
+
         this.assignSorter(name, true);
         if (name !== "score") {
             this.nonScoreSorter = name;

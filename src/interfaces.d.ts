@@ -88,6 +88,9 @@ interface HistoryState {
 
 // History state supplied/used by the paginator.
 interface ResultsState {
+    // Version number
+    version: number;
+
     // The active sorter.
     sorter: string;
 
@@ -99,11 +102,15 @@ interface ResultsState {
 
     // Sort direction.
     direction: "ASC" | "DESC";
+
+    // Result snapshot
+    results: CachedResults;
+
+    // Result count
+    count: number;
 }
 
 interface CachedResults {
-    version: number;
-    
     view: ScoredAugmentedPeony[];
     range: string;
     hasNext: boolean;

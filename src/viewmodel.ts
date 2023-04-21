@@ -2,6 +2,8 @@ import { observable, Observable, observableArray, ObservableArray } from "knocko
 import { ResultPaginator } from "./results";
 import { prefixFilter } from "./util";
 
+const RESULT_COUNT = 25;
+
 // ViewModel serves as the top-level knockout.JS viewmodel for the registry search.
 export class ViewModel {
     public searchBox: Observable<string>;
@@ -14,15 +16,16 @@ export class ViewModel {
     private allPeonies: Peony[];
     private ready: boolean;
 
-    constructor(private searcher: Searcher, registryInput: ApsRegistryInputs, private pageState: Observable<HistoryState>) {
-        let initState = this.pageState();
-        this.results = new ResultPaginator(25, searcher.normalized, (initState || {}).results);
+    constructor(private searcher: Searcher, registryInput: ApsRegistryInputs, private pageState: Observable<HistoryState>, private homeState: Observable<HistoryState>) {
+        let initState = this.pageState() || (registryInput.search ? null : this.homeState());
+        this.results = new ResultPaginator(RESULT_COUNT, searcher.normalized, (initState || {}).results);
         this.searchBox = observable("");
         this.alphaFilter = observable("");
         this.searchKinds = observableArray(kinds);
         this.searchKind = observable(kinds[0]);
         this.searchBox.subscribe(x => this.onChange());
         this.searchKind.subscribe(x => this.onChange());
+        this.results.subscribe(() => this.updateState());
         this.ready = false;
 
         // Load the database!
@@ -46,6 +49,21 @@ export class ViewModel {
                             // Otherwise, just display the database.
                             this.results.resetResults();
                         }
+
+                        // Capture home history state (cached version of front page w/ empty search)
+                        // but like, do it later.
+                        setTimeout(() => {
+                            let tmpres = new ResultPaginator(RESULT_COUNT, searcher.normalized, undefined);
+                            tmpres.initDb(this.allPeonies)
+                                .then(() => {
+                                    tmpres.resetResults();
+                                    this.homeState({
+                                        results: tmpres.getState(),
+                                        alpha: "",
+                                        search: ""
+                                    });
+                                })
+                        }, 5000);
                     });
             });
 
@@ -148,7 +166,8 @@ export class ViewModel {
         }
 
         this.searcher.search(srch, kind, this.results);
-        this.updateState();
+        
+        // We used to update state here, but now we'll wait for the search to finish (subscribe/notify callback)
     }
 
     // Computes the HistoryState value to stash into history.

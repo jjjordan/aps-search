@@ -2,7 +2,7 @@ import { applyBindings } from "knockout";
 import { NaiveSearch } from "./naivesearch";
 import { DumbScoredSearch, ScoredSearch } from "./scoredsearch";
 import { makeResultsTable } from "./display";
-import { pageState } from "./storage";
+import { pageState, homeState } from "./storage";
 import { ViewModel } from "./viewmodel";
 
 // NOTE: This module is intended to isolate the nitty-gritty of the registry page from
@@ -10,13 +10,13 @@ import { ViewModel } from "./viewmodel";
 // in isolation.
 
 // The template pulls in jQuery.
-declare var jQuery;
+//declare var jQuery;
 
 // Provided in the wordpress data.
 declare var aps_registry: ApsRegistryInputs;
 
 // Onload ...
-jQuery(() => {
+(function () {
     let search = new ScoredSearch();
     //search = new NaiveSearch();       // Simple implementation to compare against.
     //search = new DumbScoredSearch();  // Simpler version of scored search.
@@ -24,11 +24,6 @@ jQuery(() => {
     if (typeof aps_registry !== "object") {
         console.log("aps_registry undefined: Not loading registry.");
     } else if (makeResultsTable()) {
-        // Get observable to represent window history.
-        let hstate = pageState();
-        let vm = new ViewModel(search, aps_registry, hstate);
-
-        // Launch knockout bindings...
-        applyBindings(vm);
+        applyBindings(new ViewModel(search, aps_registry, pageState(), homeState()));
     }
-});
+})();
