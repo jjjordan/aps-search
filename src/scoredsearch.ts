@@ -255,6 +255,11 @@ function matchScore(query: string[], data: string[], scores: number[], prevs: bo
                         score += 0.2;
                     }
 
+                    if (i == j) {
+                        // Extra bonus if terms are located in the same position
+                        score += 0.15;
+                    }
+
                     scores[j] = Math.max(scores[j], score * weight);
                 }
             }
