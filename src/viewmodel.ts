@@ -215,15 +215,8 @@ export class ViewModel {
         // Delay by a few secondsd to allow bindings to update, etc.
         setTimeout(() => {
             let tmpres = new ResultPaginator(RESULT_COUNT, this.searcher.normalized, undefined);
-            tmpres.initDb(this.allPeonies)
-                .then(() => {
-                    tmpres.resetResults();
-                    homeState({
-                        results: tmpres.getState(),
-                        alpha: "",
-                        search: ""
-                    });
-                })
+            tmpres.on('change', () => homeState({results: tmpres.getState(), alpha: "", search: ""}));
+            tmpres.initDb(this.allPeonies).then(() => tmpres.resetResults());
         }, 5000);
     }
 }
