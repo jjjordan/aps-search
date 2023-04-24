@@ -1,6 +1,7 @@
 import { observable, Observable, observableArray, ObservableArray } from "knockout";
 import { ResultPaginator } from "./results";
 import { prefixFilter } from "./util";
+import { Loader } from "./loader";
 
 const RESULT_COUNT = 25;
 
@@ -17,8 +18,8 @@ export class ViewModel {
     private ready: boolean;
     private onreadyQueue: {(): void}[];
 
-    constructor(private searcher: Searcher, registryInput: ApsRegistryInputs, private pageState: Observable<HistoryState>, homeState: Observable<HistoryState>) {
-        let initState = this.pageState() || (registryInput.search ? null : homeState());
+    constructor(private searcher: Searcher, search: string, loader: Loader, private pageState: Observable<HistoryState>, homeState: Observable<HistoryState>) {
+        let initState = this.pageState() || (search ? null : homeState());
         this.results = new ResultPaginator(RESULT_COUNT, searcher.normalized, (initState || {}).results);
         this.searchBox = observable("");
         this.alphaFilter = observable("");
@@ -33,8 +34,7 @@ export class ViewModel {
         this.results.on('ready', () => this.onreadyQueue.forEach(f => f()));
 
         // Load the database!
-        fetch(registryInput.data_url)
-            .then(resp => resp.json())
+        loader()
             /* Debugging pre-load interactions:
             .then(data => {
                 const delay = 5000;
@@ -80,11 +80,11 @@ export class ViewModel {
         if (typeof initState === 'object' && initState !== null) {
             this.searchBox(initState.search);
             this.alphaFilter(initState.alpha);
-        } else if (registryInput.search) {
+        } else if (search) {
             // This differs slightly from the original behavior, which will always come back to
             // the front of the results if invoked from the top-right. That behavior *feels wrong*
             // so we'll defer to the most recent change always.
-            this.searchBox(registryInput.search);
+            this.searchBox(search);
         }
     }
 

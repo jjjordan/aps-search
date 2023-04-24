@@ -123,3 +123,9 @@ interface CachedResults {
     // Whether the PREV button is enabled
     hasPrev: boolean;
 }
+
+interface RegistryCacheState {
+    // When was the last time we downloaded the registry json?
+    // (js timestamp = UNIX timestamp * 1000)
+    lastAccess: number;
+}

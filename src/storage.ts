@@ -10,6 +10,11 @@ export function homeState(): Observable<HistoryState> {
     return bindWindowStorage("homeState", window.localStorage);
 }
 
+// Returns an observable bound to local storage: 
+export function registryCacheState(): Observable<RegistryCacheState> {
+    return bindWindowStorage("regcacheinfo", window.localStorage);
+}
+
 // Gets the ID for pageState storage.
 function pageStateId(): string {
     let whstate = window.history.state || {};

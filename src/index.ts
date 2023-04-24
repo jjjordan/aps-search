@@ -1,8 +1,8 @@
 import { applyBindings } from "knockout";
-import { NaiveSearch } from "./naivesearch";
-import { DumbScoredSearch, ScoredSearch } from "./scoredsearch";
+import { ScoredSearch } from "./scoredsearch";
 import { makeResultsTable } from "./display";
-import { pageState, homeState } from "./storage";
+import { pageState, homeState, registryCacheState } from "./storage";
+import { makeLoader } from "./loader";
 import { ViewModel } from "./viewmodel";
 
 // NOTE: This module is intended to isolate the nitty-gritty of the registry page from
@@ -15,12 +15,12 @@ declare var aps_registry: ApsRegistryInputs;
 // Onload ...
 (function () {
     let search = new ScoredSearch();
-    //search = new NaiveSearch();       // Simple implementation to compare against.
-    //search = new DumbScoredSearch();  // Simpler version of scored search.
 
     if (typeof aps_registry !== "object") {
         console.log("aps_registry undefined: Not loading registry.");
     } else if (makeResultsTable()) {
-        applyBindings(new ViewModel(search, aps_registry, pageState(), homeState()));
+        let loader = makeLoader(aps_registry.data_url, registryCacheState());
+        let vm = new ViewModel(search, aps_registry.search, loader, pageState(), homeState());
+        applyBindings(vm);
     }
 })();
