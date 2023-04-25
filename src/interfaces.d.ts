@@ -88,15 +88,44 @@ interface HistoryState {
 
 // History state supplied/used by the paginator.
 interface ResultsState {
-    // The active sorter.
+    // Version number
+    version: number;
+
+    // The active sorter
     sorter: string;
 
-    // The sorter that was active before applying the score sorter.
+    // The sorter that was active before applying the score sorter
     nonScoreSorter: string;
 
-    // Current page number.
+    // Current page number
     pageNo: number;
 
-    // Sort direction.
+    // Sort direction
     direction: "ASC" | "DESC";
+
+    // Result snapshot
+    results: CachedResults;
+
+    // Result count
+    count: number;
+}
+
+interface CachedResults {
+    // Current visible results
+    view: ScoredAugmentedPeony[];
+
+    // Displayed result range, e.g. "1-25 of XX"
+    range: string;
+
+    // Whether the NEXT button is enabled
+    hasNext: boolean;
+
+    // Whether the PREV button is enabled
+    hasPrev: boolean;
+}
+
+interface RegistryCacheState {
+    // When was the last time we downloaded the registry json?
+    // (js timestamp = UNIX timestamp * 1000)
+    lastAccess: number;
 }

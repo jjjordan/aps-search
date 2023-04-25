@@ -1,6 +1,9 @@
 import { observable, Observable, observableArray, ObservableArray } from "knockout";
 import { ResultPaginator } from "./results";
 import { prefixFilter } from "./util";
+import { Loader } from "./loader";
+
+const RESULT_COUNT = 25;
 
 // ViewModel serves as the top-level knockout.JS viewmodel for the registry search.
 export class ViewModel {
@@ -13,10 +16,11 @@ export class ViewModel {
 
     private allPeonies: Peony[];
     private ready: boolean;
+    private onreadyQueue: {(): void}[];
 
-    constructor(private searcher: Searcher, registryInput: ApsRegistryInputs, private pageState: Observable<HistoryState>) {
-        let initState = this.pageState();
-        this.results = new ResultPaginator(25, searcher.normalized, (initState || {}).results);
+    constructor(private searcher: Searcher, search: string, loader: Loader, private pageState: Observable<HistoryState>, homeState: Observable<HistoryState>) {
+        let initState = this.pageState() || (search ? null : homeState());
+        this.results = new ResultPaginator(RESULT_COUNT, searcher.normalized, (initState || {}).results);
         this.searchBox = observable("");
         this.alphaFilter = observable("");
         this.searchKinds = observableArray(kinds);
@@ -24,29 +28,44 @@ export class ViewModel {
         this.searchBox.subscribe(x => this.onChange());
         this.searchKind.subscribe(x => this.onChange());
         this.ready = false;
+        this.onreadyQueue = [];
+
+        this.results.on('change', () => this.updateState());
+        this.results.on('ready', () => this.onreadyQueue.forEach(f => f()));
 
         // Load the database!
-        fetch(registryInput.data_url)
-            .then(resp => resp.json())
+        loader()
+            /* Debugging pre-load interactions:
+            .then(data => {
+                const delay = 5000;
+                return new Promise<any>((resolve, reject) => {
+                    setTimeout(() => {
+                        resolve(data);
+                    }, delay);
+                });
+            })
+            */
             .then(data => {
                 this.allPeonies = data;
-                this.searcher.initDb(this.allPeonies)
-                    .then(() => this.results.initDb(this.allPeonies))
-                    .then(() => {
-                        // Enable+start search after everything is initialized.
-                        // (either searches from history state or the registryInput)
-                        this.ready = true;
-                        if (this.searchBox() !== "") {
-                            // Execute the search.
-                            this.onChange();
-                        } else if (this.alphaFilter() !== "") {
-                            // Select a filter.
-                            this.setFilter(this.alphaFilter());
-                        } else {
-                            // Otherwise, just display the database.
-                            this.results.resetResults();
-                        }
-                    });
+                return this.searcher.initDb(this.allPeonies);
+            })
+            .then(() => this.results.initDb(this.allPeonies))
+            .then(() => {
+                // Enable+start search after everything is initialized.
+                // (either searches from history state or the registryInput)
+                this.ready = true;
+                if (this.searchBox() !== "") {
+                    // Execute the search.
+                    this.onChange();
+                } else if (this.alphaFilter() !== "") {
+                    // Select a filter.
+                    this.setFilter(this.alphaFilter());
+                } else {
+                    // Otherwise, just display the database.
+                    this.results.resetResults();
+                }
+
+                this.saveHomeState(homeState);
             });
 
         // Initialize alpha filters. (populate A-Z)
@@ -61,16 +80,21 @@ export class ViewModel {
         if (typeof initState === 'object' && initState !== null) {
             this.searchBox(initState.search);
             this.alphaFilter(initState.alpha);
-        } else if (registryInput.search) {
+        } else if (search) {
             // This differs slightly from the original behavior, which will always come back to
             // the front of the results if invoked from the top-right. That behavior *feels wrong*
             // so we'll defer to the most recent change always.
-            this.searchBox(registryInput.search);
+            this.searchBox(search);
         }
     }
 
     // Called by View to set a prefix filter.
     public setFilter(prefix: string): void {
+        if (!this.ready) {
+            this.onreadyQueue.push(() => this.setFilter(prefix));
+            return;
+        }
+
         this.alphaFilter(prefix);
         this.searchBox("");
         if (this.ready) {
@@ -81,6 +105,11 @@ export class ViewModel {
 
     // Called by the View on reset.
     public reset(): void {
+        if (!this.ready) {
+            this.onreadyQueue.push(() => this.reset());
+            return;
+        }
+
         this.alphaFilter("");
         this.searchBox("");
 
@@ -93,6 +122,11 @@ export class ViewModel {
 
     // Called by the View for 'Next >'
     public next(): void {
+        if (!this.ready) {
+            this.onreadyQueue.push(() => this.next());
+            return;
+        }
+
         this.scrollAndGo(() => {
             this.results.goNext();
             this.updateState();
@@ -101,6 +135,11 @@ export class ViewModel {
 
     // Called by the View for '< Prev'
     public prev(): void {
+        if (!this.ready) {
+            this.onreadyQueue.push(() => this.prev());
+            return;
+        }
+
         this.scrollAndGo(() => {
             this.results.goPrev();
             this.updateState();
@@ -109,6 +148,11 @@ export class ViewModel {
 
     // Called by the View to change the sort column.
     public setSorter(name: string): void {
+        if (!this.ready) {
+            this.onreadyQueue.push(() => this.setSorter(name));
+            return;
+        }
+
         this.results.setSorter(name);
         this.updateState();
     }
@@ -148,7 +192,8 @@ export class ViewModel {
         }
 
         this.searcher.search(srch, kind, this.results);
-        this.updateState();
+        
+        // We used to update state here, but now we'll wait for the search to finish ('change' event)
     }
 
     // Computes the HistoryState value to stash into history.
@@ -163,6 +208,16 @@ export class ViewModel {
     // Update pageState observable so that it can be stored in browser history (or wherever).
     private updateState(): void {
         this.pageState(this.getState());
+    }
+
+    // Saves the home results (blank query, first 25 entries in the DB) to storage after the DB is loaded.
+    private saveHomeState(homeState: Observable<HistoryState>): void {
+        // Delay by a few secondsd to allow bindings to update, etc.
+        setTimeout(() => {
+            let tmpres = new ResultPaginator(RESULT_COUNT, this.searcher.normalized, undefined);
+            tmpres.on('change', () => homeState({results: tmpres.getState(), alpha: "", search: ""}));
+            tmpres.initDb(this.allPeonies).then(() => tmpres.resetResults());
+        }, 5000);
     }
 }
 
