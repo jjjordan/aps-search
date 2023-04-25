@@ -8,6 +8,9 @@ export interface Loader {
 // How "stale" do we let the registry get?
 const MAX_AGE = 12 * 60 * 60 * 1000; // 12 hours
 
+// Minimum time between db loads.
+const MIN_AGE = 30 * 1000; // 30 seconds
+
 // Returns a loader given the page input and observable for the cache state.
 export function makeLoader(data_url: string, obsCacheState: Observable<RegistryCacheState>): Loader {
     let p: Promise<Peony[]> = null;
@@ -23,9 +26,13 @@ export function makeLoader(data_url: string, obsCacheState: Observable<RegistryC
                     // a start towards the solution. It's probably worth investigating the interaction
                     // between this endpoint and the CDN.
                     if (typeof cacheState === 'object' && cacheState !== null && typeof cacheState.lastAccess === 'number') {
-                        if ((new Date().getTime() - cacheState.lastAccess) > MAX_AGE) {
+                        let cacheAge = new Date().getTime() - cacheState.lastAccess;
+                        if (cacheAge > MAX_AGE) {
                             // Stale, force reload.
                             return false;
+                        } else if (cacheAge < MIN_AGE) {
+                            // Not stale enough, force cache.
+                            return true;
                         }
                     }
 
