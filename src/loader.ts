@@ -28,15 +28,19 @@ export function makeLoader(data_url: string, obsCacheState: Observable<RegistryC
                     if (typeof cacheState === 'object' && cacheState !== null && typeof cacheState.lastAccess === 'number') {
                         let cacheAge = new Date().getTime() - cacheState.lastAccess;
                         if (cacheAge > MAX_AGE) {
-                            // Stale, force reload.
+                            // Stale: force reload.
                             return false;
                         } else if (cacheAge < MIN_AGE) {
-                            // Not stale enough, force cache.
+                            // Not stale enough: force cache.
                             return true;
                         }
+                    } else {
+                        // No known cache state: force reload.
+                        return false;
                     }
 
-                    // Elsewise, we need to see whether this was a reload or not.. It's a bit complicated..
+                    // Elsewise, we seem to have a valid cache entry -- we need to determine whether this
+                    // was a reload or not..
                     return new Promise(resolve => {
                         let observer = new PerformanceObserver(list => {
                             let reloaded = false;
@@ -52,6 +56,7 @@ export function makeLoader(data_url: string, obsCacheState: Observable<RegistryC
 
                         observer.observe({type: "navigation", buffered: true});
                     })
+                    // On error or unsupported by browser: default to reload.
                     .then(ok => ok, err => false);
                 })
                 .then(useCache => {
