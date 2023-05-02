@@ -80,6 +80,7 @@ export class ViewModel {
         if (typeof initState === 'object' && initState !== null) {
             this.searchBox(initState.search);
             this.alphaFilter(initState.alpha);
+            this.searchKinds().forEach(k => { if (k.kind === initState.kind) this.searchKind(k); });
         } else if (search) {
             // This differs slightly from the original behavior, which will always come back to
             // the front of the results if invoked from the top-right. That behavior *feels wrong*
@@ -161,7 +162,7 @@ export class ViewModel {
     private scrollAndGo(f: () => void): void {
         let elem = document.getElementById('peonies-list');
         if (elem) {
-            let y = document.getElementById('peonies-list').offsetTop;
+            let y = elem.offsetTop;
             setTimeout(() => {
                 f();
                 window.scroll({ top: y, behavior: 'smooth' });
@@ -202,6 +203,7 @@ export class ViewModel {
             alpha: this.alphaFilter(),
             search: this.searchBox(),
             results: this.results.getState(),
+            kind: this.searchKind().kind,
         };
     }
 
@@ -215,7 +217,7 @@ export class ViewModel {
         // Delay by a few secondsd to allow bindings to update, etc.
         setTimeout(() => {
             let tmpres = new ResultPaginator(RESULT_COUNT, this.searcher.normalized, undefined);
-            tmpres.on('change', () => homeState({results: tmpres.getState(), alpha: "", search: ""}));
+            tmpres.on('change', () => homeState({results: tmpres.getState(), alpha: "", search: "", kind: "All"}));
             tmpres.initDb(this.allPeonies).then(() => tmpres.resetResults());
         }, 5000);
     }

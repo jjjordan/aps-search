@@ -84,6 +84,9 @@ interface HistoryState {
 
     // State used by the paginator.
     results: ResultsState;
+
+    // Search kind
+    kind: SearchKind;
 }
 
 // History state supplied/used by the paginator.
