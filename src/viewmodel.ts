@@ -113,6 +113,7 @@ export class ViewModel {
 
         this.alphaFilter("");
         this.searchBox("");
+        this.searchKind(this.searchKinds()[0]);
 
         // Call this here because onChange won't get triggered sometimes.
         if (this.ready) {
