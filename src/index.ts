@@ -1,8 +1,8 @@
-import { applyBindings } from "knockout";
+import { applyBindings, Observable } from "knockout";
 import { ScoredSearch } from "./scoredsearch";
 import { makeResultsTable } from "./display";
 import { pageState, homeState, registryCacheState } from "./storage";
-import { makeLoader } from "./loader";
+import { makeLoader, handleRegistryCacheStateChange } from "./loader";
 import { ViewModel } from "./viewmodel";
 
 // NOTE: This module is intended to isolate the nitty-gritty of the registry page from
@@ -19,8 +19,9 @@ declare var aps_registry: ApsRegistryInputs;
     if (typeof aps_registry !== "object") {
         console.log("aps_registry undefined: Not loading registry.");
     } else if (makeResultsTable()) {
-        let loader = makeLoader(aps_registry.data_url, registryCacheState());
-        let vm = new ViewModel(search, aps_registry.search, loader, pageState(), homeState());
+        let loader = makeLoader(aps_registry.data_url, registryCacheState(handleRegistryCacheStateChange));
+        let homeStateObservable = homeState((val: HistoryState, obs: Observable<HistoryState>) => obs(val));
+        let vm = new ViewModel(search, aps_registry.search, loader, pageState(), homeStateObservable);
         applyBindings(vm);
     }
 })();

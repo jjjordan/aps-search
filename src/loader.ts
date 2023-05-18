@@ -80,3 +80,9 @@ export function makeLoader(data_url: string, obsCacheState: Observable<RegistryC
 function fetchData(url: string, cache: RequestCache): Promise<Peony[]> {
     return fetch(url, {cache: cache}).then(resp => resp.json());
 }
+
+export function handleRegistryCacheStateChange(newValue: RegistryCacheState, obs: Observable<RegistryCacheState>): void {
+    if (newValue.lastAccess > obs().lastAccess) {
+        obs(newValue);
+    }
+}

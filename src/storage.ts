@@ -1,18 +1,22 @@
 import { Observable, observable } from "knockout";
 
+interface ExternalChangeHandler<T> {
+    (newValue: T, current: Observable<T>): void;
+}
+
 // Returns an observable that writes out to page history session storage.
 export function pageState(): Observable<HistoryState> {
     return bindWindowStorage(pageStateId(), window.sessionStorage);
 }
 
 // Returns an observable that writes out to local storage (for the initial state)
-export function homeState(): Observable<HistoryState> {
-    return bindWindowStorage("homeState", window.localStorage);
+export function homeState(changeHandler?: ExternalChangeHandler<HistoryState>): Observable<HistoryState> {
+    return bindWindowStorage("homeState", window.localStorage, changeHandler);
 }
 
 // Returns an observable bound to local storage: 
-export function registryCacheState(): Observable<RegistryCacheState> {
-    return bindWindowStorage("regcacheinfo", window.localStorage);
+export function registryCacheState(changeHandler?: ExternalChangeHandler<RegistryCacheState>): Observable<RegistryCacheState> {
+    return bindWindowStorage("regcacheinfo", window.localStorage, changeHandler);
 }
 
 // Gets the ID for pageState storage.
@@ -29,11 +33,18 @@ function pageStateId(): string {
 }
 
 // Builds the observable that is bound to DOM window storage.
-function bindWindowStorage<T>(key: string, storage: Storage): Observable<T> {
+function bindWindowStorage<T>(key: string, storage: Storage, changeHandler?: ExternalChangeHandler<T>): Observable<T> {
     let value = storage.getItem(key);
-    return bindStorage<T>(
-        observable(value === null ? null : <T>JSON.parse(value)),
-        v => storage.setItem(key, JSON.stringify(v)));
+    let obsv = observable(value === null ? null : <T>JSON.parse(value))
+    if (changeHandler) {
+        window.addEventListener('storage', e => {
+            if (e.key === key) {
+                changeHandler(<T>JSON.parse(e.newValue), obsv);
+            }
+        });
+    }
+
+    return bindStorage<T>(obsv, v => storage.setItem(key, JSON.stringify(v)));
 }
 
 // Builds an observable bound to an arbitrary storage method.
