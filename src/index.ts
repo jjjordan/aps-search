@@ -20,6 +20,7 @@ declare var aps_registry: ApsRegistryInputs;
         console.log("aps_registry undefined: Not loading registry.");
     } else if (makeResultsTable()) {
         let loader = makeLoader(aps_registry.data_url, registryCacheState(handleRegistryCacheStateChange));
+        // Update our copy of the home state if it changes elsewhere.
         let homeStateObservable = homeState((val: HistoryState, obs: Observable<HistoryState>) => obs(val));
         let vm = new ViewModel(search, aps_registry.search, loader, pageState(), homeStateObservable);
         applyBindings(vm);

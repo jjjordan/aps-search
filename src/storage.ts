@@ -37,6 +37,7 @@ function bindWindowStorage<T>(key: string, storage: Storage, changeHandler?: Ext
     let value = storage.getItem(key);
     let obsv = observable(value === null ? null : <T>JSON.parse(value))
     if (changeHandler) {
+        // Detect and merge data if changed in another window or tab.
         window.addEventListener('storage', e => {
             if (e.key === key) {
                 changeHandler(<T>JSON.parse(e.newValue), obsv);

@@ -81,6 +81,7 @@ function fetchData(url: string, cache: RequestCache): Promise<Peony[]> {
     return fetch(url, {cache: cache}).then(resp => resp.json());
 }
 
+// Merges RegistryCacheState data from another window with the local copy.
 export function handleRegistryCacheStateChange(newValue: RegistryCacheState, obs: Observable<RegistryCacheState>): void {
     if (newValue.lastAccess > obs().lastAccess) {
         obs(newValue);
