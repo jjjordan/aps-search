@@ -88,3 +88,38 @@ export function prefixFilter(db: Peony[], prefix: string): Peony[] {
         }
     });
 }
+
+export function unescapeQuery(s: string): string {
+    let result: string[] = [];
+    let last = 0;
+    for (let i = 0; i < s.length; i++) {
+        let c = s.charCodeAt(i);
+        if (c == 0x5C) { // \
+            result.push(s.slice(last, i));
+            switch (s.charAt(++i)) {
+            case "'":
+                result.push("'");
+                break;
+            case '"':
+                result.push('"');
+                break;
+            case "\\":
+                result.push("\\");
+                break;
+            case "x":
+                result.push(String.fromCodePoint(parseInt(s.slice(i, i + 2), 16)));
+                i += 2;
+                break;
+            default:
+                // Insert a space for any other character
+                result.push(" ");
+                break;
+            }
+
+            last = i + 1;
+        }
+    }
+
+    result.push(s.slice(last, s.length));
+    return result.join("");
+}

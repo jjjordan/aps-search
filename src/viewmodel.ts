@@ -19,7 +19,11 @@ export class ViewModel {
     private onreadyQueue: {(): void}[];
 
     constructor(private searcher: Searcher, search: string, loader: Loader, private pageState: Observable<HistoryState>, homeState: Observable<HistoryState>) {
+        // This is a little bit weird (noted later) but if e.g. you need to test a different input from the index,
+        // then that gets overridden here. This is correct though - you need to open it agaim in a different tab to
+        // work around it.
         let initState = this.pageState() || (search ? null : homeState());
+
         this.results = new ResultPaginator(RESULT_COUNT, searcher.normalized, (initState || {}).results);
         this.searchBox = observable("");
         this.alphaFilter = observable("");
