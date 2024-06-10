@@ -16,12 +16,20 @@ declare var aps_registry: ApsRegistryInputs;
 // Onload ...
 (function () {
     let search = new ScoredSearch();
+    const testQuery: string = null;
 
     if (typeof aps_registry !== "object") {
+        // TODO: Make a default?
         console.log("aps_registry undefined: Not loading registry.");
     } else if (makeResultsTable()) {
         let loader = makeLoader(aps_registry.data_url, registryCacheState());
         let query = unescapeQuery(aps_registry.search); // The PHP double escapes :-\
+
+        if (testQuery) {
+            window.history.replaceState(null, null, window.location.href);
+            query = testQuery;
+        }
+        
         let vm = new ViewModel(search, query, loader, pageState(), homeState());
         applyBindings(vm);
     }
