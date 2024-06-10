@@ -254,7 +254,7 @@ function matchScore(query: string[], data: string[], scores: number[], prevs: bo
 
             if (useLevenshtein && Math.abs(query[j].length - data[i].length) <= LEVENSHTEIN_SCORES.length) {
                 let dist = distance(query[j], data[i]);
-                if (dist < LEVENSHTEIN_SCORES.length && dist < Math.min(query[j].length, data[i].length) / 2) {
+                if (dist < LEVENSHTEIN_SCORES.length && (dist < 3 || dist < Math.min(query[j].length, data[i].length) / 2)) {
                 //if (dist < LEVENSHTEIN_SCORES.length && dist < Math.min(query[j].length, data[i].length)) {
                     match = true;
                     score += LEVENSHTEIN_SCORES[dist];
