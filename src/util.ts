@@ -30,6 +30,44 @@ export function normalize(s: string): string {
             } else if (c == 38) {
                 // '&': read till ';'
                 for (++i; i < s.length && s.charCodeAt(i) != 59; i++) {}
+            } else if (c == 46 && last == i - 1 && ((lastc <= 90 && lastc >= 65) || (lastc >= 97 && lastc <= 122))) {
+                // Abbreviations, e.g. "A.B. Franklin" => "AB Franklin", "A.B.C. Nicholls" => "ABC Nicholls", etc.
+                
+                function isAbbreviationSegment(s: string, t: number): boolean {
+                    let ch = s.charCodeAt(t);
+                    if (!((ch <= 90 && ch >= 65) || (ch >= 97 && ch <= 122))) {
+                        return false;
+                    }
+
+                    if (++t >= s.length) {
+                        return false;
+                    }
+
+                    return s.charCodeAt(t) == 46;
+                }
+
+                let abbrev = [];
+                for (var t = i + 1; t < s.length; t += 2) {
+                    if (isAbbreviationSegment(s, t)) {
+                        abbrev.push(s.charAt(t));
+                    } else {
+                        break;
+                    }
+                }
+
+                if (abbrev.length == 0) {
+                    // Only the first part was an abbreviation, so just do what we would
+                    // normally do for a period.
+                    res.push(" ");
+                    lastc = 32;
+                } else {
+                    abbrev.forEach(c => res.push(c));
+                    res.push(" ");
+                    lastc = 32;
+                    i += 2 * abbrev.length;
+                }
+
+                console.log("Detected possible abbreviation: " + JSON.stringify(res));
             } else if (lastc != 32 && ((c >= 44 && c <= 47) || c == 58)) {
                 // Insert space in place of , - . / :
                 res.push(" ");
