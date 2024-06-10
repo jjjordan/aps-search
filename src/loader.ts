@@ -16,6 +16,7 @@ export function makeLoader(data_url: string, obsCacheState: Observable<RegistryC
     let p: Promise<Peony[]> = null;
 
     return function(): Promise<Peony[]> {
+        // Always return the same promise.
         if (!p) {
             p = new Promise<RegistryCacheState>(resolve => resolve(obsCacheState()))
                 .then(cacheState => {
