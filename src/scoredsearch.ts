@@ -1,6 +1,7 @@
 import { ObservableArray } from "knockout";
 import { resourceLimits } from "worker_threads";
 import { normalize, populateNormalized } from "./util";
+import { distance } from "fastest-levenshtein";
 
 const BATCH_COUNT = 1000;
 const BATCH_DELAY = 5;
@@ -11,6 +12,10 @@ const BATCH_DELAY = 5;
 // elapsed, then the search is started. (NOTE: the search may still be interrupted after being started).
 const INCREMENTAL_DELAY = 50;
 const MAX_DELAY = 250;
+
+// Score granted to Levenshtein-matched strings by distance.
+const LEVENSHTEIN_SCORES: number[] = [0, 0.4, 0.3, 0.2, 0.1]; // , 0.5, 0.4];
+//const LEVENSHTEIN_SCORES: number[] = [1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4];
 
 // ScoredSearch is meant as the advanced search strategy. Search terms are compared against a fully-
 // normalized database (including case and diacritics) and scored depending on where they are found
@@ -176,21 +181,21 @@ function scorePeony(query: string[], peony: ScoredAugmentedPeony, kind: SearchKi
 
     switch (kind) {
     case "All":
-        matchScore(query, peony.cultivar_norm, scores, prevs, 3);       // Cultivar gets 3x bonus
+        matchScore(query, peony.cultivar_norm, scores, prevs, 3, true);       // Cultivar gets 3x bonus
         matchScore(query, peony.description_norm, scores, prevs);
         matchScore(query, peony.group_norm, scores, prevs, 1.5);        // Group gets 1.5x bonus
-        matchScore(query, peony.originator_norm, scores, prevs, 2);     // Originator gets 2x bonus
+        matchScore(query, peony.originator_norm, scores, prevs, 2, true);     // Originator gets 2x bonus
         matchScore(query, peony.country_norm, scores, prevs);
         matchScore(query, peony.date_norm, scores, prevs);
         break;
     case "Cultivar":
-        matchScore(query, peony.cultivar_norm, scores, prevs);
+        matchScore(query, peony.cultivar_norm, scores, prevs, 1, true);
         break;
     case "Group":
         matchScore(query, peony.group_norm, scores, prevs);
         break;
     case "Originator":
-        matchScore(query, peony.originator_norm, scores, prevs);
+        matchScore(query, peony.originator_norm, scores, prevs, 1, true);
         break;
     case "Date":
         matchScore(query, peony.date_norm, scores, prevs);
@@ -218,7 +223,7 @@ function scorePeony(query: string[], peony: ScoredAugmentedPeony, kind: SearchKi
 // Compares normalized data against a query and awards scores for full/prefix/partial matches and
 // consecutive term bonuses. Returns partial scores in `scores`. `prevs` is owned by the caller
 // but only used within this function to remember previous terms.
-function matchScore(query: string[], data: string[], scores: number[], prevs: boolean[], weight: number = 1) {
+function matchScore(query: string[], data: string[], scores: number[], prevs: boolean[], weight: number = 1, useLevenshtein: boolean = false) {
     for (let j = 0; j < query.length; j++) {
         prevs[j] = false;
     }
@@ -229,41 +234,49 @@ function matchScore(query: string[], data: string[], scores: number[], prevs: bo
         let precPrevMatch = false; // Did the previous term match the previous token?
         for (let j = 0; j < query.length; j++) {
             let match = false;
-            if (query[j].length <= data[i].length) {
-                let score = 0;
-                let idx = data[i].indexOf(query[j]);
-                if (idx > -1) {
-                    match = true;
-                    if (idx == 0) {
-                        if (query[j].length == data[i].length) {
-                            // Full match
-                            score += 1;
-                        } else {
-                            // Prefix match
-                            score += 0.5;
-                        }
+            let score = 0;
+            let idx = data[i].indexOf(query[j]);
+            if (idx > -1) {
+                match = true;
+                if (idx == 0) {
+                    if (query[j].length == data[i].length) {
+                        // Full match
+                        score += 1;
                     } else {
-                        // Partial match
-                        score += 0.25;
-                    }
-
-                    if (precPrevMatch) {
-                        // If previous search term matched previous token.
+                        // Prefix match
                         score += 0.5;
-                    } else if (anyPrev) {
-                        // If previous token matched any search term
-                        score += 0.2;
                     }
-
-                    if (i == j) {
-                        // Extra bonus if terms are located in the same position
-                        score += 0.15;
-                    }
-
-                    scores[j] = Math.max(scores[j], score * weight);
+                } else {
+                    // Partial match
+                    score += 0.25;
                 }
             }
 
+            if (useLevenshtein && Math.abs(query[j].length - data[i].length) <= LEVENSHTEIN_SCORES.length) {
+                let dist = distance(query[j], data[i]);
+                if (dist < LEVENSHTEIN_SCORES.length && dist < Math.min(query[j].length, data[i].length) / 2) {
+                //if (dist < LEVENSHTEIN_SCORES.length && dist < Math.min(query[j].length, data[i].length)) {
+                    match = true;
+                    score += LEVENSHTEIN_SCORES[dist];
+                }
+            }
+
+            if (match) {
+                if (precPrevMatch) {
+                    // If previous search term matched previous token.
+                    score += 0.5;
+                } else if (anyPrev) {
+                    // If previous token matched any search term
+                    score += 0.2;
+                }
+
+                if (i == j) {
+                    // Extra bonus if terms are located in the same position
+                    score += 0.25;
+                }
+            }
+
+            scores[j] = Math.max(scores[j], score * weight);
             precPrevMatch = prevs[j]; // Save for next term before clobbering.
             prevs[j] = match;
             anyMatch ||= match;
