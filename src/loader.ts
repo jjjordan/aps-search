@@ -5,9 +5,6 @@ export interface Loader {
     (): Promise<Peony[]>;
 }
 
-// How "stale" do we let the registry get?
-const MAX_AGE = 12 * 60 * 60 * 1000; // 12 hours
-
 // Minimum time between db loads.
 const MIN_AGE = 30 * 1000; // 30 seconds
 
@@ -28,7 +25,7 @@ export function makeLoader(data_url: string, obsCacheState: Observable<RegistryC
                     // between this endpoint and the CDN.
                     if (typeof cacheState === 'object' && cacheState !== null && typeof cacheState.lastAccess === 'number') {
                         let cacheAge = new Date().getTime() - cacheState.lastAccess;
-                        if (cacheAge > MAX_AGE) {
+                        if (cacheAge > getMaxAge()) {
                             // Stale: force reload.
                             return false;
                         } else if (cacheAge < MIN_AGE) {
@@ -80,4 +77,18 @@ export function makeLoader(data_url: string, obsCacheState: Observable<RegistryC
 // The actual load function.
 function fetchData(url: string, cache: RequestCache): Promise<Peony[]> {
     return fetch(url, {cache: cache}).then(resp => resp.json());
+}
+
+// How "stale" do we let the registry get?
+// From Jordan:
+//   Yup - I would say usually January. I don't do it myself, I have someone else do it, but it all gets added right after the printed Directory is published in December.
+//   There are other minor edits that occur from time to time throughout the year - maybe an additional photograph, a footnote, or correction, but those are rather uncommon
+function getMaxAge(): number {
+    // Set a 12-hour limit in Dec-Jan. For the rest of the year, set a 1-week limit.
+    let m = new Date().getMonth();
+    if (m === 0 || m === 11) {
+        return 12 * 60 * 60 * 1000;
+    } else {
+        return 7 * 24 * 60 * 60 * 1000;
+    }
 }
