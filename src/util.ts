@@ -49,15 +49,43 @@ export function normalize(s: string): string {
     return res.join("").toUpperCase();
 }
 
+// This may not exist in some browsers.
+const segmenter: any = (<any>Intl).Segmenter && new (<any>Intl).Segmenter("zh", { granularity: "word" });
+
 // Fills in the fields of an AugmentedPeony with its normalized data.
 export function populateNormalized(p: AugmentedPeony): void {
-    p.cultivar_norm = normalize(p.cultivar).split(" ");
     p.description_norm = normalize(p.description).split(" ");
     p.group_norm = normalize(p.group).split(" ");
     p.originator_norm = normalize(p.originator).split(" ");
     p.country_norm = normalize(p.country).split(" ");
     p.date_norm = normalize(p.date).split(" ");
     p.date_val = getDate(p.date);
+
+    // Handle multilingual titles
+    if (p.cultivar.indexOf("/") >= 0) {
+        let parts = p.cultivar.split("/", 2);
+        if (hasCJK(parts[0])) {
+            // Name contains CJK. Split into two.
+            if (segmenter) {
+                // Segment
+                p.native_cultivar_norm = [];
+                for (const seg of segmenter.segment(parts[0])) {
+                    p.native_cultivar_norm.push(seg);
+                }
+            } else {
+                // If no segmenter then put in one place and rely on substring match to work.
+                p.native_cultivar_norm = [parts[0]];
+            }
+
+            p.cultivar_norm = normalize(parts[1]).split(" ");
+        } else {
+            p.cultivar_norm = normalize(p.cultivar).split(" ");
+            p.native_cultivar_norm = [];
+        }
+    } else {
+        p.cultivar_norm = normalize(p.cultivar).split(" ");
+        p.native_cultivar_norm = [];
+    }
 }
 
 const yearRegex = /(1[5-9]|20)[0-9]{2}/;
@@ -75,6 +103,10 @@ function getDate(s: string): number {
     } else {
         return 9999;
     }
+}
+
+export function hasCJK(s: string): boolean {
+    return /[\u4E00-\u9FFF]/.test(s);
 }
 
 // Filters peonies by first letter of cultivar (preferring normalized data).

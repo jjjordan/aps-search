@@ -22,6 +22,7 @@ interface ScoredPeony extends Peony {
 interface AugmentedPeony extends Peony {
     originator_norm?: string[];
     cultivar_norm?: string[];
+    native_cultivar_norm?: string[];
     description_norm?: string[];
     group_norm?: string[];
     country_norm?: string[];
