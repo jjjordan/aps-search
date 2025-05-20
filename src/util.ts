@@ -15,7 +15,11 @@ export function normalize(s: string): string {
 
     for (let i = 0; i < s.length; i++) {
         let c = s.charCodeAt(i);
-        if ((c == 32 && lastc != 32) || (c <= 57 && c >= 48) || (c <= 90 && c >= 65) || (c >= 97 && c <= 122)) {
+        if ((c == 32 && lastc != 32) ||
+                (c <= 57 && c >= 48) ||
+                (c <= 90 && c >= 65) ||
+                (c >= 97 && c <= 122) ||
+                (c >= 0x4E00 && c <= 0x9FFF && isCJKLetter(c))) {
             // Allowed.
             lastc = c;
         } else {
@@ -49,9 +53,6 @@ export function normalize(s: string): string {
     return res.join("").toUpperCase();
 }
 
-// This may not exist in some browsers.
-const segmenter: any = (<any>Intl).Segmenter && new (<any>Intl).Segmenter("zh", { granularity: "word" });
-
 // Fills in the fields of an AugmentedPeony with its normalized data.
 export function populateNormalized(p: AugmentedPeony): void {
     p.description_norm = normalize(p.description).split(" ");
@@ -66,25 +67,15 @@ export function populateNormalized(p: AugmentedPeony): void {
         let parts = p.cultivar.split("/", 2);
         if (hasCJK(parts[0])) {
             // Name contains CJK. Split into two.
-            if (segmenter) {
-                // Segment
-                p.native_cultivar_norm = [];
-                for (const seg of segmenter.segment(parts[0])) {
-                    p.native_cultivar_norm.push(seg);
-                }
-            } else {
-                // If no segmenter then put in one place and rely on substring match to work.
-                p.native_cultivar_norm = [parts[0]];
-            }
-
+            p.native_cultivar_norm = splitCJK(normalize(parts[0]));
             p.cultivar_norm = normalize(parts[1]).split(" ");
         } else {
-            p.cultivar_norm = normalize(p.cultivar).split(" ");
             p.native_cultivar_norm = [];
+            p.cultivar_norm = normalize(p.cultivar).split(" ");
         }
     } else {
-        p.cultivar_norm = normalize(p.cultivar).split(" ");
         p.native_cultivar_norm = [];
+        p.cultivar_norm = normalize(p.cultivar).split(" ");
     }
 }
 
@@ -107,6 +98,48 @@ function getDate(s: string): number {
 
 export function hasCJK(s: string): boolean {
     return /[\u4E00-\u9FFF]/.test(s);
+}
+
+// This may not exist in some browsers. We're also going to assume any CJK
+// is actually just Chinese. May want smarter detection in the future.
+const segmenter: any = (<any>Intl).Segmenter && new (<any>Intl).Segmenter("zh", { granularity: "word" });
+
+export function splitCJK(s: string): string[] {
+    let result: string[] = [];
+    if (segmenter) {
+        // Segment
+        for (const seg of segmenter.segment(s)) {
+            result.push(seg.segment);
+        }
+    } else {
+        // If no segmenter then put in one place and rely on substring match to work.
+        result.push(s);
+    }
+
+    return result;
+}
+
+// Splits both Romanized and East Asian text. Needed for potentially mixed queries.
+export function splitMixedCJK(s: string): string[] {
+    let parts = s.split(" ");
+    let result: string[] = [];
+
+    for (let i = 0; i < parts.length; i++) {
+        if (hasCJK(parts[i])) {
+            let subparts = splitCJK(parts[i]);
+            for (let j = 0; j < subparts.length; j++) {
+                result.push(subparts[j]);
+            }
+        } else {
+            result.push(parts[i]);
+        }
+    }
+
+    return result;
+}
+
+function isCJKLetter(c: number): boolean {
+    return true;
 }
 
 // Filters peonies by first letter of cultivar (preferring normalized data).
@@ -155,3 +188,10 @@ export function unescapeQuery(s: string): string {
     result.push(s.slice(last, s.length));
     return result.join("");
 }
+
+// debug ...
+// window["normalize"] = normalize;
+// window["splitCJK"] = splitCJK;
+// window["splitMixedCJK"] = splitMixedCJK;
+// window["segmenter"] = segmenter;
+// window["zhpeonies"] = [];

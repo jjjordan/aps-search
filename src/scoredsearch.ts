@@ -1,6 +1,6 @@
 import { ObservableArray } from "knockout";
 import { resourceLimits } from "worker_threads";
-import { normalize, populateNormalized } from "./util";
+import { hasCJK, normalize, populateNormalized, splitCJK, splitMixedCJK } from "./util";
 
 const BATCH_COUNT = 1000;
 const BATCH_DELAY = 5;
@@ -112,7 +112,13 @@ export class ScoredSearch implements Searcher {
     // scoreResults will then recurse through the rest of the database.
     private startSearch(query: string, kind: SearchKind, results: IResultPaginator): void {
         //console.log("RUNNING search");
-        let query_norm = normalize(query).split(" ").filter(s => s.length > 0);
+        let query_norm: string[];
+        if (!hasCJK(query)) {
+            query_norm = normalize(query).split(" ").filter(s => s.length > 0);
+        } else {
+            query_norm = splitMixedCJK(normalize(query)).filter(s => s.length > 0);
+        }
+
         let intermediate: ScoredPeony[] = [];
         this.scoreResults(0, query_norm, intermediate, kind, results);
     }
@@ -177,6 +183,7 @@ function scorePeony(query: string[], peony: ScoredAugmentedPeony, kind: SearchKi
     switch (kind) {
     case "All":
         matchScore(query, peony.cultivar_norm, scores, prevs, 3);       // Cultivar gets 3x bonus
+        matchScore(query, peony.native_cultivar_norm, scores, prevs, 3);
         matchScore(query, peony.description_norm, scores, prevs);
         matchScore(query, peony.group_norm, scores, prevs, 1.5);        // Group gets 1.5x bonus
         matchScore(query, peony.originator_norm, scores, prevs, 2);     // Originator gets 2x bonus
@@ -185,6 +192,7 @@ function scorePeony(query: string[], peony: ScoredAugmentedPeony, kind: SearchKi
         break;
     case "Cultivar":
         matchScore(query, peony.cultivar_norm, scores, prevs);
+        matchScore(query, peony.native_cultivar_norm, scores, prevs, 2);
         break;
     case "Group":
         matchScore(query, peony.group_norm, scores, prevs);
