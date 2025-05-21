@@ -25,4 +25,10 @@ jobs:
     - name: Build
       run: |
         npm install
-        gulp esbuild-min
+        gulp esbuild esbuild-min
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      with:
+        name: registry-output
+        path: out/rel/bundle.js
